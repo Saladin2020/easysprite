@@ -12,6 +12,9 @@ easysprite.config.json
 .cursor/
 *.local.json
 
+# Generated full showcase trees (keep curated PNGs in docs/assets/)
+docs/assets/showcase/
+
 # Large third-party clones (use npm run vendor:fetch)
 vendor/*/
 !vendor/REFERENCES.md

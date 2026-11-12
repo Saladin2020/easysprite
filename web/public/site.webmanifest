@@ -1,0 +1,35 @@
+{
+  "name": "Easy Sprite",
+  "short_name": "EasySprite",
+  "description": "Compose modular pixel-art characters for a Thai cozy village — no AI art in-app.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#140e0a",
+  "theme_color": "#f4ae3d",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

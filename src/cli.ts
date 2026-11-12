@@ -221,12 +221,16 @@ program
       const wantShortcut = Boolean(opts.installShortcut || opts.shortcutOnly);
       if (wantShortcut) {
         try {
-          const { shortcutPath, batPath } = await installDesktopShortcut({
+          const { shortcutPath, launcherPath, platform } = await installDesktopShortcut({
             pkgRoot,
             workspace,
           });
+          console.log(`Platform          ${platform}`);
           console.log(`Desktop shortcut  ${shortcutPath}`);
-          console.log(`Launcher          ${batPath}`);
+          console.log(`Launcher          ${launcherPath}`);
+          if (platform !== "windows" && platform !== "macos" && platform !== "linux") {
+            console.log("iOS/iPadOS: open the web UI in Safari → Share → Add to Home Screen");
+          }
         } catch (err) {
           console.error(err instanceof Error ? err.message : String(err));
           process.exitCode = 1;

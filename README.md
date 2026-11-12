@@ -1,69 +1,137 @@
+<p align="center">
+  <img src="docs/assets/icon-512.png" width="120" alt="Easy Sprite lantern icon" />
+</p>
+
 # Easy Sprite
 
-Local CLI + web tool for composing modular pixel-art character sprites.
+**ร้านแต่งตัวละครพิกเซล · หมู่บ้านอบอุ่น**  
+Compose modular **48px** top-down ¾ chibi sprites — RPG Maker / Stardew vibe for a Thai cozy-village game.
 
-**Art style lock:** RPG Maker MV/MZ · Stardew-like · top-down ¾ chibi  
-(see `docs/STYLE.md`, `vendor/REFERENCES.md`)
+[![license](https://img.shields.io/badge/license-check%20repo-2e2014?style=flat-square)](https://github.com/Saladin2020/easysprite)
+[![node](https://img.shields.io/badge/node-%3E%3D20-3f7d52?style=flat-square)](https://nodejs.org)
+[![platform](https://img.shields.io/badge/desktop-Windows%20%7C%20macOS%20%7C%20Linux-f4ae3d?style=flat-square)](#desktop)
+[![ios](https://img.shields.io/badge/iOS%20%2F%20iPadOS-PWA%20%2F%20Safari-79c48a?style=flat-square)](#ios--ipados)
+[![mcp](https://img.shields.io/badge/MCP-compose%20only-c45c26?style=flat-square)](docs/MCP.md)
 
-You prepare part sheets ahead of time (by hand, Aseprite, LPC packs, or any off-app tools).  
-The app only **selects, recolors, previews, and exports** — no AI generation in-product.
+> You prep the art. Easy Sprite only **selects · recolors · previews · exports**.  
+> No AI art generation in-app.
+
+<p align="center">
+  <img src="docs/assets/ui-compositor.png" width="900" alt="Easy Sprite compositor UI" />
+</p>
+
+<p align="center">
+  <img src="docs/assets/hero-cast.png" width="720" alt="Village cast showcase sheet" />
+</p>
+
+---
+
+## Why it exists
+
+Dress a whole village cast without redrawing every sheet: bodies, clothes, hair, faces, accessories, pets, and wild animals — stacked as a paperdoll on a locked 30-frame grid.
+
+| Humans | Pets | Wild |
+| --- | --- | --- |
+| adult · child · elder · stocky | dog cat rabbit chicken duck buffalo pig | deer boar tiger elephant monkey squirrel myna |
+
+<p align="center">
+  <img src="docs/assets/mcp_test_farmer_pa.png" height="96" alt="Farmer" />
+  <img src="docs/assets/kid_farang_leo.png" height="96" alt="Kid" />
+  <img src="docs/assets/mcp_test_dog_som.png" height="96" alt="Dog" />
+</p>
+
+Native export sheets (4 directions × 30 frames):
+
+<p align="center">
+  <img src="docs/assets/sheet-leo.png" width="420" alt="Leo native sheet" />
+  <img src="docs/assets/sheet-emma.png" width="420" alt="Emma native sheet" />
+</p>
+
+---
 
 ## Quick start
 
 ```bash
+git clone https://github.com/Saladin2020/easysprite.git
+cd easysprite
 npm install
-npm run vendor:fetch   # clone LPC / PixelDoll / PixyGoat / etc. into vendor/
+npm run init          # sample parts + demo projects
+npm run desktop       # open the UI in your browser
+```
+
+Dev mode (API + Vite):
+
+```bash
 npm run dev
+# API  http://127.0.0.1:8787
+# UI   http://127.0.0.1:5173
 ```
 
-- API: `http://127.0.0.1:8787`
-- UI: `http://127.0.0.1:5173`
-
-### Desktop (Windows)
-
-Double-click launcher or pin a shortcut:
+Optional reference packs:
 
 ```bash
-npm run desktop:shortcut   # creates Desktop\Easy Sprite.lnk
-npm run desktop            # start UI + open browser
+npm run vendor:fetch
 ```
 
-Or run `scripts\start-desktop.bat`. Uses `EASYSPRITE_HOME` if set, otherwise this folder.  
-Close the console window (or Ctrl+C) to stop the server.
+---
 
-First run creates:
+## Desktop
 
-```text
-parts/       modular sprite sheets
-projects/    saved character selections + colors
-exports/     exported sheets / frames
-easysprite.config.json
-```
+One command starts the local server and opens the UI. Close the terminal to stop.
 
-Refresh sample parts:
+| OS | Launcher |
+| --- | --- |
+| **Windows** | `npm run desktop:shortcut` → Desktop `Easy Sprite.lnk` · or `scripts\start-desktop.bat` |
+| **macOS** | `npm run desktop:shortcut` → Desktop `Easy Sprite.command` · or `scripts/start-desktop.sh` |
+| **Linux** | `npm run desktop:shortcut` → Desktop `.desktop` + apps menu · or `scripts/start-desktop.sh` |
 
 ```bash
-npx tsx src/cli.ts init --force-samples
+npm run desktop              # start + open browser
+npm run desktop:shortcut     # install/update Desktop icon only
 ```
+
+Workspace defaults to `EASYSPRITE_HOME` if set, otherwise the repo folder.
+
+### iOS / iPadOS
+
+There is no App Store binary — the **web UI is the app**:
+
+1. Run Easy Sprite on a machine on your network (`npm run desktop -- --host 0.0.0.0`)
+2. Open the URL in **Safari** on iPhone/iPad
+3. Share → **Add to Home Screen** (PWA: icon, standalone chrome, theme color)
+
+Favicon + Apple touch icon + `site.webmanifest` ship in `web/public/`.
+
+---
+
+## Features
+
+- Slot paperdoll: `hair_back → body → pants → shoes → shirt → face → hair_front → accessory`
+- Recolor with hue-aware shading (hair front/back sync)
+- Timeline preview: walk / wave / cheer / … · 4 directions
+- Save / export to **any folder** (Browse + remember last paths)
+- Animated **showcase** gallery (HTML) with direction + anim controls
+- **MCP** tools for Cursor / HTTP agents — compose & export without clicking ([docs/MCP.md](docs/MCP.md))
+- Export presets: native · RPG Maker MV/MZ · Godot atlas · frame folder
+
+Art-style lock: see [`docs/STYLE.md`](docs/STYLE.md) · [`vendor/REFERENCES.md`](vendor/REFERENCES.md)
+
+---
 
 ## Commands
 
 ```bash
 npm run init
 npm run serve
-npm run desktop            # desktop launcher (opens browser)
-npm run desktop:shortcut   # Windows Desktop icon
+npm run desktop
+npm run desktop:shortcut
 npm run build
-npx tsx src/cli.ts serve --dev
-npm run mcp          # MCP over stdio (Cursor / local agents)
-npm run mcp:http     # MCP over HTTP at http://127.0.0.1:8790/mcp
+npm run mcp              # stdio MCP
+npm run mcp:http         # http://127.0.0.1:8790/mcp
+npx tsx src/cli.ts showcase --open
 ```
 
-## AI / MCP
-
-Agents can compose and export characters without the web UI. See [`docs/MCP.md`](docs/MCP.md).  
-Cursor: one **User** MCP entry in `~/.cursor/mcp.json` (works in every project). See [`docs/MCP.md`](docs/MCP.md).  
-Still **compose-only** — no AI art generation in-app.
+---
 
 ## Part format
 
@@ -73,57 +141,25 @@ parts/<slot>/<part_id>/
   part.json
 ```
 
-Grid: columns = the 30 frames in `frames` order:
+30 columns = frame list · 4-row blocks per direction (`front right back left`).  
+Wearables that fit several builds list `bodyTypes` and stack one block per build.  
+Animals are full bodies: `animal_<species>`. Human clothes skip animals unless `bodyTypes` includes that species (`acc_pet_collar`).
 
-| Group | Frames |
-|---|---|
-| Move | `idle`, `walk0`–`walk2`, `run0`–`run3`, `jump0`, `jump1` |
-| Daily | `wave0/1`, `carry0/1`, `farm0/1`, `cheer0/1` |
-| Fight | `attack0/1`, `hurt0/1`, `fall0/1` (fall1 = knocked out, lying) |
-| Rest | `sleep0/1` (lying), `tired0/1`, `sit`, `crouch` |
+---
 
-Animals (`parts/body/animal_<species>`) are complete bodies on the same 30-frame grid; the frames mean the closest animal action (wave = wag/call, carry = eat, farm = dig/scratch, cheer = happy hop, attack = bite/charge, crouch = sniff, fall1 = belly-up KO). Species: pets `dog`, `cat`, `rabbit`, `chicken`, `duck`, `buffalo`, `pig`; wild `deer`, `boar`, `tiger`, `elephant`, `monkey`, `squirrel`, `myna`. Human clothes are skipped on animals; a wearable shows on an animal only if its `bodyTypes` lists that species (see `acc_pet_collar`).
+## MCP (agents)
 
-Rows = direction blocks (`front`, `right`, `back`, `left`). Wearable parts that fit several body types list them in `bodyTypes` (e.g. `["adult","child","elder","stocky"]`) and stack one 4-row block per body type in that order. Body parts set a single `bodyType` and have 4 rows. A part without `bodyTypes` uses its first block for every body.  
-Default frame size: `48x48`. Every part must keep the same body position per frame (feet on the same row, head at the same height) or layers will drift apart during animation. `recolor.tolerance` is the hue window (70 ≈ 25°) used to find shades of `base`.
+Compose-only operator flow: `workspace_info → list_parts → compose_character → export_character`.  
+Never invent part ids. Prompt: `easysprite-operator`. Details: [`docs/MCP.md`](docs/MCP.md).
 
-```json
-{
-  "id": "shirt_blazer",
-  "name": "School Blazer",
-  "slot": "shirt",
-  "zIndex": 40,
-  "frameSize": 48,
-  "columns": 30,
-  "rows": 16,
-  "directions": ["front", "right", "back", "left"],
-  "frames": ["idle", "walk0", "walk1", "walk2", "run0", "run1", "run2", "run3", "jump0", "jump1",
-             "wave0", "wave1", "carry0", "carry1", "farm0", "farm1", "cheer0", "cheer1",
-             "attack0", "attack1", "hurt0", "hurt1", "fall0", "fall1",
-             "sleep0", "sleep1", "tired0", "tired1", "sit", "crouch"],
-  "bodyTypes": ["adult", "child", "elder", "stocky"],
-  "sheet": "sheet.png",
-  "recolor": {
-    "enabled": true,
-    "base": "#243a6e",
-    "tolerance": 70
-  }
-}
-```
+---
 
-## Features
+## License / credit
 
-- Slot-based paperdoll compositor
-- Per-slot recolor (hair syncs front/back)
-- Walk timeline preview (4 directions)
-- Project save: selections + colors (choose any Save folder; Default = `projects/`)
-- Export to any Export folder (Default = `exports/`); last folders are remembered
-- Export presets:
-  - Native Easy Sprite sheet
-  - RPG Maker MV/MZ 3×4
-  - Godot atlas JSON
-  - Per-frame folder
+Sample art is generated by the local sample pipeline for demos. Third-party vendor packs are **not** vendored in git — fetch them yourself and respect each pack’s license (`npm run vendor:fetch`).
 
-## Slots
+---
 
-`hair_back` → `body` → `shoes` → `pants` → `shirt` → `face` → `hair_front` → `accessory`
+<p align="center">
+  <sub>teak · lanterns · 48px dreams</sub>
+</p>
