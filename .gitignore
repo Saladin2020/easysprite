@@ -1,0 +1,19 @@
+node_modules/
+dist/
+web/dist/
+exports/
+parts/
+projects/
+easysprite.config.json
+*.log
+.DS_Store
+.env
+.env.*
+.cursor/
+*.local.json
+
+# Large third-party clones (use npm run vendor:fetch)
+vendor/*/
+!vendor/REFERENCES.md
+!vendor/.gitkeep
+vendor/fetch-report.json
