@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
-import { cors } from "hono/cors";
+import { getCookie, setCookie } from "hono/cookie";
 import { serveStatic } from "@hono/node-server/serve-static";
 import type { CharacterProject, ExportPresetId } from "../shared/types.js";
 import { exportProject } from "../lib/compose.js";
@@ -11,7 +11,9 @@ import { startMcpHttp, stopMcpHttp } from "../lib/mcpHttpControl.js";
 import { getMcpStatus } from "../lib/mcpStatus.js";
 import { openPath } from "../lib/openPath.js";
 import { buildShowcase } from "../lib/showcase.js";
+import { DEV_UI_ORIGINS, checkRequest } from "../shared/requestGuard.js";
 import {
+  allowDir,
   deleteProjects,
   getWorkspaceSummary,
   loadParts,
@@ -25,6 +27,21 @@ export interface CreateAppOptions {
   workspaceRoot: string;
   webRoot?: string;
   dev?: boolean;
+  /** Interface the server listens on; non-loopback hosts require `token`. */
+  host?: string;
+  token?: string;
+}
+
+const TOKEN_COOKIE = "easysprite_token";
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+function tokenPage(): string {
+  return `<!doctype html><meta charset="utf-8"><title>Easy Sprite</title>
+<body style="font-family:system-ui;background:#1a1410;color:#f3e7d3;padding:2rem">
+<h1>Easy Sprite token required</h1>
+<p>Paste the token printed in the terminal that started Easy Sprite.</p>
+<form method="get"><input name="token" autocomplete="off" style="width:22rem"> <button>Open</button></form>
+</body>`;
 }
 
 function safeRelPath(input: string): string {
@@ -35,9 +52,36 @@ function safeRelPath(input: string): string {
 
 export function createApp(options: CreateAppOptions): Hono {
   const app = new Hono();
-  const { workspaceRoot, webRoot, dev } = options;
+  const { workspaceRoot, webRoot, dev, host = "127.0.0.1", token } = options;
+  const guard = { bindHost: host, token, extraOrigins: dev ? DEV_UI_ORIGINS : [] };
 
-  app.use("/api/*", cors());
+  // No CORS: the UI is same-origin. Block cross-site writes, DNS rebinding, and
+  // (when listening beyond loopback) any request without the token.
+  app.use("*", async (c, next) => {
+    const queryToken = c.req.query("token");
+    const provided = c.req.header("x-easysprite-token") ?? queryToken ?? getCookie(c, TOKEN_COOKIE);
+    const denied = checkRequest(guard, {
+      method: c.req.method,
+      host: c.req.header("host"),
+      origin: c.req.header("origin"),
+      token: provided,
+    });
+    if (denied) {
+      if (denied.status === 401 && c.req.method === "GET" && !c.req.path.startsWith("/api/")) {
+        return c.html(tokenPage(), 401);
+      }
+      return c.json({ error: denied.error }, denied.status);
+    }
+    if (token && queryToken) {
+      setCookie(c, TOKEN_COOKIE, queryToken, {
+        httpOnly: true,
+        sameSite: "Strict",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+    }
+    await next();
+  });
 
   app.get("/api/health", (c) => c.json({ ok: true, workspaceRoot }));
 
@@ -89,6 +133,7 @@ export function createApp(options: CreateAppOptions): Hono {
         title: body.title,
       });
       if (!chosen) return c.json({ ok: false, cancelled: true });
+      await allowDir(workspaceRoot, chosen);
       return c.json({ ok: true, path: chosen });
     } catch (err) {
       return c.json(
@@ -269,17 +314,20 @@ export function createApp(options: CreateAppOptions): Hono {
     }) => {
       const rel = safeRelPath(file.filename);
       if (!rel) throw new Error("Invalid filename");
+      const ext = path.extname(rel).toLowerCase();
+      let data: Buffer | string;
+      if (ext === ".png" && file.pngBase64) {
+        const base64 = file.pngBase64.replace(/^data:image\/png;base64,/, "");
+        data = Buffer.from(base64, "base64");
+        if (!data.subarray(0, 8).equals(PNG_SIGNATURE)) throw new Error(`${rel} is not a PNG`);
+      } else if (ext === ".json" && file.json !== undefined && !file.pngBase64) {
+        data = `${JSON.stringify(file.json, null, 2)}\n`;
+      } else {
+        throw new Error(`Only .png (PNG data) or .json (JSON data) exports are allowed: ${rel}`);
+      }
       const outPath = path.join(exportsDir, rel);
       await mkdir(path.dirname(outPath), { recursive: true });
-
-      if (file.pngBase64) {
-        const base64 = file.pngBase64.replace(/^data:image\/png;base64,/, "");
-        await writeFile(outPath, Buffer.from(base64, "base64"));
-      } else if (file.json !== undefined) {
-        await writeFile(outPath, `${JSON.stringify(file.json, null, 2)}\n`);
-      } else {
-        throw new Error(`Nothing to write for ${rel}`);
-      }
+      await writeFile(outPath, data);
       written.push(outPath);
     };
 

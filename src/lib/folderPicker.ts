@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
 import { promisify } from "node:util";
 import path from "node:path";
-import { resolveOutDir } from "./workspace.js";
+import { resolvePath } from "./workspace.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -15,8 +15,14 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
+/** PowerShell single-quoted literal: double every quote (incl. smart quotes PowerShell also accepts). */
 function powershellEscape(value: string): string {
-  return value.replace(/'/g, "''");
+  return value.replace(/['\u2018\u2019\u201A\u201B]/g, "$&$&");
+}
+
+/** AppleScript string literal body: escape backslashes first, then quotes; drop newlines. */
+function appleScriptEscape(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]/g, " ");
 }
 
 async function pickWindows(startDir: string, title: string): Promise<string | null> {
@@ -52,9 +58,9 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
 
 async function pickMac(startDir: string, title: string): Promise<string | null> {
   const script = `
-set defaultFolder to POSIX file "${startDir.replace(/\\/g, "/").replace(/"/g, '\\"')}"
+set defaultFolder to POSIX file "${appleScriptEscape(startDir.replace(/\\/g, "/"))}"
 try
-  set chosen to choose folder with prompt "${title.replace(/"/g, '\\"')}" default location defaultFolder
+  set chosen to choose folder with prompt "${appleScriptEscape(title)}" default location defaultFolder
   return POSIX path of chosen
 on error
   return ""
@@ -88,7 +94,7 @@ export async function pickFolder(options: {
   title?: string;
 }): Promise<string | null> {
   const title = options.title ?? "Choose folder";
-  let start = resolveOutDir(options.workspaceRoot, options.startDir, ".");
+  let start = resolvePath(options.workspaceRoot, options.startDir, ".");
   if (!(await exists(start))) start = options.workspaceRoot;
 
   if (process.platform === "win32") return pickWindows(start, title);

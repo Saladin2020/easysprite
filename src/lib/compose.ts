@@ -14,7 +14,7 @@ import {
 } from "../shared/types.js";
 import { encodePng } from "./png.js";
 import { recolorRgba } from "./recolor.js";
-import { loadConfig, loadParts, partSheetPath, resolveOutDir, saveProject } from "./workspace.js";
+import { assertSafeId, loadConfig, loadParts, partSheetPath, resolveOutDir, saveProject } from "./workspace.js";
 
 export function directionRow(part: PartMeta, direction: Direction, bodyType?: Build): number {
   const idx = Math.max(0, part.directions.indexOf(direction));
@@ -444,7 +444,7 @@ export async function exportProject(
   const parts = await loadParts(root);
   let project = options.project;
   if (!project && options.projectId) {
-    const file = path.join(root, "projects", `${options.projectId}.json`);
+    const file = path.join(root, "projects", `${assertSafeId(options.projectId)}.json`);
     project = JSON.parse(await readFile(file, "utf8")) as CharacterProject;
   }
   if (!project) throw new Error("project or projectId required");

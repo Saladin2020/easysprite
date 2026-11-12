@@ -7,6 +7,7 @@ import { serve } from "@hono/node-server";
 import { Command } from "commander";
 import open from "open";
 import { createApp, defaultWebRoot } from "./server/app.js";
+import { resolveToken } from "./shared/requestGuard.js";
 import { installDesktopShortcut } from "./lib/desktopShortcut.js";
 import { initWorkspace, resolveWorkspace } from "./lib/workspace.js";
 
@@ -130,16 +131,23 @@ async function runServe(opts: {
     console.log("Tip: npm run build  for a single-port production UI.");
   }
 
+  const token = resolveToken(host);
   const app = createApp({
     workspaceRoot,
     webRoot,
     dev: useDev,
+    host,
+    token,
   });
 
   serve({ fetch: app.fetch, hostname: host, port }, async (info) => {
     const apiUrl = `http://${host}:${info.port}`;
     console.log(`Easy Sprite API  ${apiUrl}`);
     console.log(`Workspace        ${workspaceRoot}`);
+    if (token) {
+      console.log(`Token            ${token}`);
+      console.log(`  Non-loopback host: open http://<this-machine-ip>:${info.port}/?token=${token}`);
+    }
 
     if (useDev) {
       const webDir = path.join(pkgRoot, "web");
@@ -170,7 +178,7 @@ async function runServe(opts: {
         }, 1200);
       }
     } else {
-      const uiUrl = apiUrl;
+      const uiUrl = token ? `${apiUrl}/?token=${token}` : apiUrl;
       console.log(`Web UI           ${uiUrl}`);
       if (opts.open) {
         void open(uiUrl);

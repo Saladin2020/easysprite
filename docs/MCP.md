@@ -79,4 +79,6 @@ npm run mcp:http
 # POST http://127.0.0.1:8790/mcp     → MCP Streamable HTTP
 ```
 
-Point any MCP client that speaks Streamable HTTP at that endpoint. Keep the server on localhost unless you add auth.
+Point any MCP client that speaks Streamable HTTP at that endpoint. The HTTP server sends no CORS headers and rejects cross-origin browser requests and non-loopback `Host` headers. If you bind it to a non-loopback host (`--host 0.0.0.0`), it requires `Authorization: Bearer <token>` (printed at startup, or set `EASYSPRITE_TOKEN`).
+
+`dir` / `exportDir` / `saveDir` must be inside the workspace, a folder picked in the web UI, or a folder listed in `EASYSPRITE_ALLOWED_DIRS`. Project ids must match `^[a-z0-9_-]+$`.
