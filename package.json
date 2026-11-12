@@ -18,7 +18,13 @@
     "mcp:http": "tsx src/mcp/server.ts --http --port 8790",
     "init": "tsx src/cli.ts init",
     "vendor:fetch": "node scripts/fetch-vendors.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "smoke:tools": "node scripts/smoke-mcp-tools.mjs",
+    "smoke:compose": "tsx scripts/smoke-mcp-compose.mjs",
+    "smoke:launcher": "node scripts/smoke-mcp-launcher.mjs",
+    "smoke": "npm run smoke:tools && npm run smoke:compose && npm run smoke:launcher",
+    "mcp:install-launcher": "node scripts/easysprite-mcp.mjs --install"
   },
   "engines": {
     "node": ">=20"
@@ -43,6 +49,8 @@
     "tsup": "^8.5.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "vite": "^7.0.2"
-  }
+    "vite": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "license": "MIT"
 }

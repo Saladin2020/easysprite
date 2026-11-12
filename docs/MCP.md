@@ -27,8 +27,8 @@ Use **User** MCP only: `~/.cursor/mcp.json` (Windows: `%USERPROFILE%\.cursor\mcp
 
 Do **not** also put `easysprite` in the project `.cursor/mcp.json` — that creates a second project-scoped row (often Disabled) and overrides the User one.
 
-**1. Launcher** (once): copy or keep `~/.cursor/easysprite-mcp.mjs`  
-(default install path inside that file / via `EASYSPRITE_HOME`).
+**1. Launcher** (once): from the repo run `npm run mcp:install-launcher`.  
+It copies [`scripts/easysprite-mcp.mjs`](../scripts/easysprite-mcp.mjs) to `~/.cursor/easysprite-mcp.mjs` with this repo as the default install path. Override with `EASYSPRITE_HOME` (install folder) or `EASYSPRITE_WORKSPACE` (workspace). Re-run after moving the repo.
 
 **2. User `~/.cursor/mcp.json`** — no `D:\` here. On Windows use `${env:USERPROFILE}`  
 (not `${userHome}`, which can become `/c:/Users/...` and cause **Connection closed**):
