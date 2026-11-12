@@ -32,6 +32,10 @@ import {
 import { composeAndSave, exportProject } from "../lib/compose.js";
 import { buildShowcase } from "../lib/showcase.js";
 import { getWorkspaceSummary, loadParts, loadProjects, resolveWorkspace } from "../lib/workspace.js";
+import { checkRequest, resolveToken } from "../shared/requestGuard.js";
+
+/** Project ids are file names: `a-z 0-9 _ -` only. */
+const ProjectIdSchema = z.string().regex(/^[a-z0-9_-]+$/, "Use a-z, 0-9, _ or -");
 
 function text(data: unknown) {
   return {
@@ -211,7 +215,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
       description:
         "Create or overwrite a character/animal project from part selections and optional recolor hex colors. Auto-fills hair_back from hair_front when possible. Clears clothes that do not fit animal bodies. Returns warnings for unknown or incompatible parts.",
       inputSchema: {
-        id: z.string().describe("Save id slug, e.g. rice_farmer_pa"),
+        id: ProjectIdSchema.describe("Save id slug, e.g. rice_farmer_pa"),
         name: z.string().describe("Display name"),
         selections: z
           .record(SlotSchema, z.string().nullable())
@@ -249,7 +253,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
       description:
         "Compose layers server-side and write sprite sheet files. Provide projectId of a saved project, or an inline project object. Presets: native (4×30), rpgmaker_mv, godot, frames.",
       inputSchema: {
-        projectId: z.string().optional().describe("Saved project id"),
+        projectId: ProjectIdSchema.optional().describe("Saved project id"),
         project: z
           .object({
             id: z.string(),
@@ -299,7 +303,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
         characters: z
           .array(
             z.object({
-              id: z.string(),
+              id: ProjectIdSchema,
               name: z.string(),
               selections: z.record(SlotSchema, z.string().nullable()),
               colors: z.record(SlotSchema, z.string()).optional(),
@@ -436,14 +440,24 @@ async function startHttp(workspace: string, host: string, port: number) {
   );
 
   const sessions = new Map<string, InstanceType<typeof StreamableHTTPServerTransport>>();
+  const token = resolveToken(host);
+  if (token) console.error(`Non-loopback host: send "Authorization: Bearer ${token}" (or set EASYSPRITE_TOKEN)`);
 
+  // No CORS: browsers on other sites must not drive the MCP. Same guard as the web API.
   const httpServer = createServer(async (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "content-type, mcp-session-id");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
-    if (req.method === "OPTIONS") {
-      res.writeHead(204);
-      res.end();
+    const auth = req.headers.authorization;
+    const denied = checkRequest(
+      { bindHost: host, token },
+      {
+        method: req.method ?? "GET",
+        host: req.headers.host,
+        origin: req.headers.origin,
+        token: auth?.startsWith("Bearer ") ? auth.slice(7) : (req.headers["x-easysprite-token"] as string | undefined),
+      },
+    );
+    if (denied) {
+      res.writeHead(denied.status, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: denied.error }));
       return;
     }
 

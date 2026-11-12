@@ -92,13 +92,22 @@ npm run desktop:shortcut     # install/update Desktop icon only
 
 Workspace defaults to `EASYSPRITE_HOME` if set, otherwise the repo folder.
 
+### Security
+
+The API is local-only by design:
+
+- No CORS. Requests that change anything must come from the Easy Sprite UI itself (same origin), so other websites cannot write files.
+- On `127.0.0.1` (default) only loopback `Host` headers are accepted. On any other host (e.g. `0.0.0.0`) **every request needs the token** printed at startup (`?token=`, cookie, or `x-easysprite-token` header).
+- Projects and exports are written only inside the workspace, folders you pick with **Browse**, or folders listed in `EASYSPRITE_ALLOWED_DIRS` (OS path separator). Picked folders are remembered in `easysprite.allowed-dirs.json`.
+- Project ids are limited to `a-z 0-9 _ -`. `/api/export` writes only `.png` (real PNG data) and `.json` files.
+
 ### iOS / iPadOS
 
 There is no App Store binary — the **web UI is the app**:
 
 1. Run Easy Sprite on a machine on your network (`npm run desktop -- --host 0.0.0.0`)
-2. Open the URL in **Safari** on iPhone/iPad
-3. Share → **Add to Home Screen** (PWA: icon, standalone chrome, theme color)
+2. The terminal prints a **token** (set `EASYSPRITE_TOKEN` to keep it fixed). Open `http://<machine-ip>:8787/?token=<token>` in **Safari** on iPhone/iPad
+3. Share → **Add to Home Screen** (PWA: icon, standalone chrome, theme color). If the home-screen app asks for the token, paste it once
 
 Favicon + Apple touch icon + `site.webmanifest` ship in `web/public/`.
 

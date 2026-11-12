@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { access, mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
@@ -11,6 +12,17 @@ import { demoProjects } from "./demoProjects.js";
 import { writeSampleParts } from "./sampleParts.js";
 
 const CONFIG_NAME = "easysprite.config.json";
+/** Folders the user picked in the native dialog; writes outside the workspace must be under one. */
+const ALLOWED_DIRS_NAME = "easysprite.allowed-dirs.json";
+const SAFE_ID = /^[a-z0-9_-]+$/;
+
+/** Project ids become file names, so only allow `a-z 0-9 _ -`. */
+export function assertSafeId(id: unknown, label = "project id"): string {
+  if (typeof id !== "string" || !SAFE_ID.test(id)) {
+    throw new Error(`Invalid ${label} ${JSON.stringify(id)} (use a-z, 0-9, _ or -)`);
+  }
+  return id;
+}
 
 async function exists(p: string): Promise<boolean> {
   try {
@@ -137,7 +149,7 @@ export async function deleteProjects(
   const missing: string[] = [];
   for (const id of ids) {
     const slug = id.trim();
-    if (!slug || slug.includes("..") || slug.includes("/") || slug.includes("\\")) {
+    if (!SAFE_ID.test(slug)) {
       missing.push(id);
       continue;
     }
@@ -152,11 +164,54 @@ export async function deleteProjects(
   return { deleted, missing, dir: projectsDir };
 }
 
-/** Resolve an output folder: absolute paths stay absolute; relative paths are under the workspace. */
-export function resolveOutDir(root: string, dir: string | undefined, fallbackRel: string): string {
+/** Resolve a folder without access checks (absolute stays absolute; relative is under the workspace). */
+export function resolvePath(root: string, dir: string | undefined, fallbackRel: string): string {
   const raw = (dir ?? "").trim() || fallbackRel;
-  const resolved = path.isAbsolute(raw) ? path.normalize(raw) : path.resolve(root, raw);
-  if (!resolved) throw new Error("Invalid output folder");
+  return path.isAbsolute(raw) ? path.normalize(raw) : path.resolve(root, raw);
+}
+
+function isInside(base: string, target: string): boolean {
+  const norm = (p: string) => (process.platform === "win32" ? path.resolve(p).toLowerCase() : path.resolve(p));
+  const rel = path.relative(norm(base), norm(target));
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+/** Workspace + folders picked in the dialog + `EASYSPRITE_ALLOWED_DIRS` (path-delimiter separated). */
+export function allowedRoots(root: string): string[] {
+  const roots = [path.resolve(root)];
+  try {
+    const saved = JSON.parse(readFileSync(path.join(root, ALLOWED_DIRS_NAME), "utf8")) as unknown;
+    if (Array.isArray(saved)) roots.push(...saved.filter((d): d is string => typeof d === "string"));
+  } catch {
+    // no picked folders yet
+  }
+  const env = process.env.EASYSPRITE_ALLOWED_DIRS;
+  if (env) roots.push(...env.split(path.delimiter).filter(Boolean));
+  return roots;
+}
+
+/** Remember a folder the user explicitly picked so later saves/exports may use it. */
+export async function allowDir(root: string, dir: string): Promise<void> {
+  const resolved = path.resolve(dir);
+  if (allowedRoots(root).some((r) => isInside(r, resolved))) return;
+  const file = path.join(root, ALLOWED_DIRS_NAME);
+  let saved: string[] = [];
+  try {
+    saved = JSON.parse(await readFile(file, "utf8")) as string[];
+  } catch {
+    saved = [];
+  }
+  await writeFile(file, `${JSON.stringify([...saved, resolved], null, 2)}\n`);
+}
+
+/** Resolve a folder for reading/writing projects or exports; must be inside an allowed root. */
+export function resolveOutDir(root: string, dir: string | undefined, fallbackRel: string): string {
+  const resolved = resolvePath(root, dir, fallbackRel);
+  if (!allowedRoots(root).some((r) => isInside(r, resolved))) {
+    throw new Error(
+      `Folder not allowed: ${resolved}. Use the workspace, pick it with Browse, or add it to EASYSPRITE_ALLOWED_DIRS.`,
+    );
+  }
   return resolved;
 }
 
@@ -165,6 +220,7 @@ export async function saveProject(
   project: CharacterProject,
   dir?: string,
 ): Promise<{ project: CharacterProject; path: string }> {
+  assertSafeId(project.id);
   const projectsDir = resolveOutDir(root, dir, "projects");
   await mkdir(projectsDir, { recursive: true });
   const next: CharacterProject = {

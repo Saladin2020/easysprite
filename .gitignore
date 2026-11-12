@@ -20,3 +20,4 @@ vendor/*/
 !vendor/REFERENCES.md
 !vendor/.gitkeep
 vendor/fetch-report.json
+easysprite.allowed-dirs.json
