@@ -57,7 +57,9 @@ export async function initWorkspace(cwd = process.cwd(), options?: { forceSample
     await writeSampleParts(root);
   }
 
-  if (options?.forceSamples) {
+  // Seed demo characters on first run (empty projects/) or when samples are forced.
+  const hasProjects = (await readdir(projectsDir)).some((f) => f.endsWith(".json"));
+  if (!hasProjects || options?.forceSamples) {
     for (const demo of demoProjects()) {
       await writeFile(path.join(projectsDir, `${demo.id}.json`), `${JSON.stringify(demo, null, 2)}\n`);
     }

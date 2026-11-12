@@ -1,11 +1,11 @@
+// Starts the MCP through scripts/easysprite-mcp.mjs (the same file Cursor runs from ~/.cursor).
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import os from "node:os";
 import path from "node:path";
 
-const launcher = path.join(os.homedir(), ".cursor", "easysprite-mcp.mjs");
+const launcher = process.env.EASYSPRITE_LAUNCHER ?? path.resolve("scripts", "easysprite-mcp.mjs");
 const transport = new StdioClientTransport({
-  command: "node",
+  command: process.execPath,
   args: [launcher],
   env: { ...process.env, EASYSPRITE_HOME: process.cwd() },
 });
