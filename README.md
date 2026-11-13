@@ -39,6 +39,8 @@ Dress a whole village cast without redrawing every sheet: bodies, clothes, hair,
   <img src="docs/assets/mcp_test_farmer_pa.png" height="96" alt="Farmer" />
   <img src="docs/assets/kid_farang_leo.png" height="96" alt="Kid" />
   <img src="docs/assets/mcp_test_dog_som.png" height="96" alt="Dog" />
+  <img src="docs/assets/mcp_side_auntie.png" height="96" alt="Market auntie side" />
+  <img src="docs/assets/mcp_side_pier_kid.png" height="96" alt="Pier kid side" />
 </p>
 
 Native top-down export sheets (4 directions × 30 frames):
@@ -46,6 +48,13 @@ Native top-down export sheets (4 directions × 30 frames):
 <p align="center">
   <img src="docs/assets/sheet-leo.png" width="420" alt="Leo native sheet" />
   <img src="docs/assets/sheet-emma.png" width="420" alt="Emma native sheet" />
+</p>
+
+Native side-view export sheets (3 directions × 30 frames) — composed via MCP:
+
+<p align="center">
+  <img src="docs/assets/sheet-side-auntie.png" width="420" alt="Market auntie side sheet" />
+  <img src="docs/assets/sheet-side-pier-kid.png" width="420" alt="Pier kid side sheet" />
 </p>
 
 ---
@@ -62,7 +71,7 @@ Flip **Top-down ↔ Side-view** in panel 1 and the outfit carries over. Every to
 | Exports | native · RPG Maker · Godot · frames | native · Godot · frames |
 
 <p align="center">
-  <img src="docs/assets/side-cast.png" width="720" alt="Side-view cast (last card is the top-down farmer for comparison)" />
+  <img src="docs/assets/side-cast.png" width="720" alt="Side-view cast with MCP auntie + pier kid (last card is top-down farmer for comparison)" />
 </p>
 <p align="center">
   <img src="docs/assets/side-walk.png" width="420" alt="Side-view walk cycle: right, left, front" />
