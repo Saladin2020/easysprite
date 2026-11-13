@@ -416,6 +416,7 @@ export function ShowcasePanel({
                     {p.id.startsWith("mcp_test_") ? (
                       <em className="tag-mcp"> MCP</em>
                     ) : null}
+                    {p.view === "side" ? <em className="tag-side"> side</em> : null}
                   </span>
                   <code>{p.id}</code>
                 </label>

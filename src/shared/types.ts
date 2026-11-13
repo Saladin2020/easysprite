@@ -99,6 +99,25 @@ export interface PartMeta {
   bodyType?: Build;
   /** Row groups in the sheet (each group = `directions.length` rows). Missing = one group fits all humans. */
   bodyTypes?: Build[];
+  /** Camera the art is drawn for. Missing = "topdown". */
+  view?: ViewMode;
+}
+
+/** "topdown" = RPG Maker / Stardew ¾ view, "side" = side-scroller / platformer. */
+export type ViewMode = "topdown" | "side";
+export const VIEW_MODES: Array<{ id: ViewMode; label: string; artStyle: string }> = [
+  { id: "topdown", label: "Top-down", artStyle: "rpgmaker-stardew-topdown-chibi" },
+  { id: "side", label: "Side-view", artStyle: "side-scroller-chibi" },
+];
+
+export const viewOf = (item: { view?: ViewMode } | null | undefined): ViewMode => item?.view ?? "topdown";
+
+/** Side-view parts reuse the top-down id with this prefix, so outfits can switch camera. */
+export const SIDE_PREFIX = "side_";
+
+export function idForView(id: string, view: ViewMode): string {
+  const base = id.startsWith(SIDE_PREFIX) ? id.slice(SIDE_PREFIX.length) : id;
+  return view === "side" ? `${SIDE_PREFIX}${base}` : base;
 }
 
 export interface EasySpriteConfig {
@@ -109,6 +128,8 @@ export interface EasySpriteConfig {
   columns: number;
   rows: number;
   directions: Direction[];
+  /** Rows for side-view projects. */
+  sideDirections?: Direction[];
   frames: AnimFrame[];
   slots: Array<{
     id: PartSlot;
@@ -126,6 +147,17 @@ export interface CharacterProject {
   selections: Partial<Record<PartSlot, string | null>>;
   /** Per-slot tint hex colors */
   colors?: Partial<Record<PartSlot, string>>;
+  /** Camera mode; selections must use parts of the same view. Missing = "topdown". */
+  view?: ViewMode;
+}
+
+/** Same outfit, other camera: every selected id swaps to its counterpart for `view`. */
+export function projectForView<T extends Pick<CharacterProject, "selections" | "view">>(project: T, view: ViewMode): T {
+  const selections: CharacterProject["selections"] = {};
+  for (const [slot, id] of Object.entries(project.selections) as Array<[PartSlot, string | null]>) {
+    selections[slot] = id ? idForView(id, view) : id;
+  }
+  return { ...project, selections, view };
 }
 
 export interface WorkspaceSummary {
@@ -140,7 +172,17 @@ export interface WorkspaceSummary {
 }
 
 export const DEFAULT_DIRECTIONS: Direction[] = ["front", "right", "back", "left"];
+/** Side-scrollers walk left/right; `front` is kept for talking to the camera. */
+export const SIDE_DIRECTIONS: Direction[] = ["right", "left", "front"];
 export const DEFAULT_FRAMES: AnimFrame[] = [...FRAME_IDS];
+
+export function directionsForView(
+  view: ViewMode,
+  config?: Pick<EasySpriteConfig, "directions" | "sideDirections">,
+): Direction[] {
+  if (view === "side") return config?.sideDirections?.length ? config.sideDirections : SIDE_DIRECTIONS;
+  return config?.directions?.length ? config.directions : DEFAULT_DIRECTIONS;
+}
 
 export const ANIM_PRESETS: Array<{
   id: AnimPresetId;
@@ -175,6 +217,7 @@ export const DEFAULT_CONFIG: EasySpriteConfig = {
   columns: FRAME_IDS.length,
   rows: 4,
   directions: DEFAULT_DIRECTIONS,
+  sideDirections: SIDE_DIRECTIONS,
   frames: DEFAULT_FRAMES,
   slots: [
     { id: "hair_back", label: "Hair (back)", zIndex: 5, recolorDefault: "#6e482a" },
@@ -196,12 +239,12 @@ export const EXPORT_PRESETS: Array<{
   {
     id: "native",
     label: "Native sheet",
-    description: "4 directions × 30 frames (walk/run/jump/fight/hurt/KO/sleep/…)",
+    description: "Direction rows (4 top-down / 3 side-view) × 30 frames (walk/run/jump/fight/hurt/KO/sleep/…)",
   },
   {
     id: "rpgmaker_mv",
     label: "RPG Maker MV/MZ",
-    description: "3 × 4 walk sheet (down/left/right/up)",
+    description: "3 × 4 walk sheet (down/left/right/up) — top-down only",
   },
   {
     id: "godot",

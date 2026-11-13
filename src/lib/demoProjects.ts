@@ -1,4 +1,4 @@
-import { PET_SPECIES, SPECIES, type CharacterProject, type PartSlot } from "../shared/types.js";
+import { PET_SPECIES, SPECIES, projectForView, type CharacterProject, type PartSlot } from "../shared/types.js";
 import { ANIMAL_NAMES, COLLAR_SPECIES, animalBaseColor } from "./sprite/animals.js";
 
 type Look = Partial<Record<PartSlot, [id: string, color?: string]>>;
@@ -17,8 +17,28 @@ function demo(id: string, name: string, look: Look): CharacterProject {
   return { id, name, updatedAt: new Date().toISOString(), selections, colors };
 }
 
-/** Starter cast: every age group, body type, skin tone and a mix of genders. */
+const SIDE_DEMOS = [
+  "village_farmer",
+  "market_seller",
+  "school_girl",
+  "teen_runner",
+  "young_knight",
+  "grandma",
+  "little_boy",
+  "pet_dog",
+  "pet_chicken",
+];
+
 export function demoProjects(): CharacterProject[] {
+  const topdown = topdownDemos();
+  const side = topdown
+    .filter((p) => SIDE_DEMOS.includes(p.id))
+    .map((p) => ({ ...projectForView(p, "side"), id: `side_${p.id}`, name: `${p.name} · Side` }));
+  return [...topdown, ...side];
+}
+
+/** Starter cast: every age group, body type, skin tone and a mix of genders. */
+function topdownDemos(): CharacterProject[] {
   return [
     demo("school_boy", "School Boy", {
       body: ["body_light", "#e8c4a0"],

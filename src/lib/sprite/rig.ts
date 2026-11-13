@@ -1,4 +1,4 @@
-import type { AnimFrame, BodyType, Direction } from "../../shared/types.js";
+import type { AnimFrame, BodyType, Direction, ViewMode } from "../../shared/types.js";
 import { CELL, Cell, OUTLINE, hasNeighbor, type Box, type Pt } from "./cell.js";
 
 export type View = "front" | "back" | "side";
@@ -41,6 +41,16 @@ export const BODY: Record<BodyType, BodySpec> = {
   stocky: { headW: 20, headH: 16, torsoW: 14, torsoH: 11, legLen: 8, legW: 5, armK: 1, hunch: 0 },
 };
 
+/** Side-scroller proportions: smaller head, longer torso and legs, feet lower in the cell. */
+export const BODY_SIDE: Record<BodyType, BodySpec> = {
+  adult: { headW: 16, headH: 14, torsoW: 11, torsoH: 12, legLen: 12, legW: 4, armK: 1.25, hunch: 0 },
+  child: { headW: 15, headH: 13, torsoW: 10, torsoH: 9, legLen: 8, legW: 3, armK: 0.95, hunch: 0 },
+  elder: { headW: 16, headH: 14, torsoW: 11, torsoH: 11, legLen: 11, legW: 4, armK: 1.2, hunch: 2 },
+  stocky: { headW: 18, headH: 14, torsoW: 14, torsoH: 12, legLen: 11, legW: 5, armK: 1.2, hunch: 0 },
+};
+
+const GROUND: Record<ViewMode, number> = { topdown: 42, side: 44 };
+
 export interface Arm {
   pts: Pt[];
   behind: boolean;
@@ -56,6 +66,7 @@ export interface Leg {
 
 export interface Rig {
   view: View;
+  camera: ViewMode;
   body: BodyType;
   pose: Pose;
   phase: number;
@@ -375,8 +386,8 @@ const fromShoulder = (s: Pt, offs: Pt[], k: number): Pt[] => [
 
 const mirrorPts = (pts: Pt[]): Pt[] => pts.map(([x, y]): Pt => [CELL - 1 - x, y]);
 
-export function rigFor(direction: Direction, frame: AnimFrame, body: BodyType): Rig {
-  const spec = BODY[body];
+export function rigFor(direction: Direction, frame: AnimFrame, body: BodyType, camera: ViewMode = "topdown"): Rig {
+  const spec = (camera === "side" ? BODY_SIDE : BODY)[body];
   const [pose, phase] = POSE_BY_FRAME[frame];
   const lying = pose === "ko" || pose === "sleep";
   // Lying poses are drawn standing, then rotated; the back direction reuses the front view.
@@ -390,7 +401,7 @@ export function rigFor(direction: Direction, frame: AnimFrame, body: BodyType): 
   const side = view === "side";
   const k = spec.legLen / 9;
 
-  const ground = 42 - m.lift;
+  const ground = GROUND[camera] - m.lift;
   const hipY = ground - spec.legLen + m.dip;
   const ty = hipY - spec.torsoH;
   const hy = ty - spec.headH + m.headDy + (spec.hunch ? 1 : 0);
@@ -449,6 +460,7 @@ export function rigFor(direction: Direction, frame: AnimFrame, body: BodyType): 
 
   return {
     view,
+    camera,
     body,
     pose,
     phase,

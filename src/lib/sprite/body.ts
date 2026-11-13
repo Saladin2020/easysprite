@@ -20,7 +20,7 @@ export function drawBody(skin: Rgba): Draw {
   return (c, r) => {
     if (!r.lie) {
       const rx = (r.body === "stocky" ? 9 : r.body === "child" ? 7 : 8) - Math.min(3, r.lift);
-      c.ellipse(24, 44, rx, 1.6, SHADOW);
+      c.ellipse(24, r.ground + r.lift + 2, rx, 1.6, SHADOW);
     }
 
     const leg = (t: Cell, l: Leg, col: Rgba) => {

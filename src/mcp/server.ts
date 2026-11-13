@@ -21,7 +21,10 @@ import {
   EXPORT_PRESETS,
   PET_SPECIES,
   SPECIES,
+  VIEW_MODES,
   WILD_SPECIES,
+  directionsForView,
+  viewOf,
   type ExportPresetId,
   type PartSlot,
 } from "../shared/types.js";
@@ -63,6 +66,10 @@ const SlotSchema = z.enum([
 
 const ExportPresetSchema = z.enum(["native", "rpgmaker_mv", "godot", "frames"]);
 
+const ViewSchema = z
+  .enum(["topdown", "side"])
+  .describe('Camera: "topdown" (RPG Maker/Stardew ¾) or "side" (side-scroller). Side-view part ids start with side_.');
+
 function parseArgs(argv: string[]) {
   const out = { http: false, port: 8790, host: "127.0.0.1", workspace: process.env.EASYSPRITE_WORKSPACE ?? process.cwd() };
   for (let i = 0; i < argv.length; i++) {
@@ -99,6 +106,11 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
         artStyle: summary.config.artStyle,
         frameSize: summary.config.frameSize,
         directions: summary.config.directions,
+        viewModes: VIEW_MODES.map((v) => ({
+          ...v,
+          directions: directionsForView(v.id, summary.config),
+          partCount: summary.parts.filter((p) => viewOf(p) === v.id).length,
+        })),
         frameCount: summary.config.frames.length,
         slots: summary.config.slots,
         humanBodyTypes: ["adult", "child", "elder", "stocky"],
@@ -114,7 +126,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
         exportPresets: EXPORT_PRESETS,
         partCount: summary.parts.length,
         projectCount: summary.projects.length,
-        note: "AI composes existing parts only — do not invent part ids. Animals use body animal_<species>; human clothes are skipped on animals unless bodyTypes lists that species.",
+        note: "AI composes existing parts only — do not invent part ids. Animals use body animal_<species>; human clothes are skipped on animals unless bodyTypes lists that species. Pick one view per character: top-down ids are plain (shirt_mohom), side-view ids add side_ (side_shirt_mohom).",
       });
     },
   );
@@ -124,8 +136,9 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
     {
       title: "List parts",
       description:
-        "List modular sprite parts (bodies, clothes, hair, faces, accessories, animals). Filter by slot, search query, or body/species type the part fits.",
+        "List modular sprite parts (bodies, clothes, hair, faces, accessories, animals). Filter by camera view (default topdown), slot, search query, or body/species type the part fits.",
       inputSchema: {
+        view: ViewSchema.optional().describe("Camera view to list (default topdown)"),
         slot: SlotSchema.optional().describe("Part slot to filter"),
         query: z.string().optional().describe("Case-insensitive match on id or name"),
         bodyType: z
@@ -135,11 +148,13 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
         limit: z.number().int().min(1).max(200).optional().describe("Max results (default 80)"),
       },
     },
-    async ({ slot, query, bodyType, limit }) => {
+    async ({ view, slot, query, bodyType, limit }) => {
       const parts = await loadParts(root);
       const q = query?.trim().toLowerCase() ?? "";
       const max = limit ?? 80;
+      const wantView = view ?? "topdown";
       const filtered = parts.filter((p) => {
+        if (viewOf(p) !== wantView) return false;
         if (slot && p.slot !== slot) return false;
         if (q && !p.id.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return false;
         if (bodyType) {
@@ -150,6 +165,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
         return true;
       });
       return text({
+        view: wantView,
         total: filtered.length,
         shown: Math.min(max, filtered.length),
         parts: filtered.slice(0, max).map((p) => ({
@@ -184,6 +200,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
         projects: filtered.map((p) => ({
           id: p.id,
           name: p.name,
+          view: viewOf(p),
           body: p.selections.body ?? null,
           updatedAt: p.updatedAt,
         })),
@@ -213,10 +230,11 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
     {
       title: "Compose character",
       description:
-        "Create or overwrite a character/animal project from part selections and optional recolor hex colors. Auto-fills hair_back from hair_front when possible. Clears clothes that do not fit animal bodies. Returns warnings for unknown or incompatible parts.",
+        "Create or overwrite a character/animal project from part selections and optional recolor hex colors. Auto-fills hair_back from hair_front when possible. Clears clothes that do not fit animal bodies. Parts from the other camera view are swapped to their counterpart. Returns warnings for unknown or incompatible parts.",
       inputSchema: {
         id: ProjectIdSchema.describe("Save id slug, e.g. rice_farmer_pa"),
         name: z.string().describe("Display name"),
+        view: ViewSchema.optional().describe("Camera view (default: follows the body part)"),
         selections: z
           .record(SlotSchema, z.string().nullable())
           .describe("Map of slot → part id (or null). Must include body."),
@@ -230,11 +248,12 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
           .describe("Optional absolute/relative folder for the JSON (default: workspace projects/)"),
       },
     },
-    async ({ id, name, selections, colors, dir }) => {
+    async ({ id, name, view, selections, colors, dir }) => {
       try {
         const result = await composeAndSave(root, {
           id,
           name,
+          view,
           selections: selections as Partial<Record<PartSlot, string | null>>,
           colors: colors as Partial<Record<PartSlot, string>> | undefined,
           dir,
@@ -251,13 +270,14 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
     {
       title: "Export character",
       description:
-        "Compose layers server-side and write sprite sheet files. Provide projectId of a saved project, or an inline project object. Presets: native (4×30), rpgmaker_mv, godot, frames.",
+        "Compose layers server-side and write sprite sheet files. Provide projectId of a saved project, or an inline project object. Presets: native (direction rows × 30 frames; 4 rows top-down, 3 rows side-view), rpgmaker_mv (top-down only), godot, frames.",
       inputSchema: {
         projectId: ProjectIdSchema.optional().describe("Saved project id"),
         project: z
           .object({
             id: z.string(),
             name: z.string(),
+            view: ViewSchema.optional(),
             selections: z.record(SlotSchema, z.string().nullable()),
             colors: z.record(SlotSchema, z.string()).optional(),
           })
@@ -277,6 +297,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
             ? {
                 id: project.id,
                 name: project.name,
+                view: project.view,
                 updatedAt: new Date().toISOString(),
                 selections: project.selections as Partial<Record<PartSlot, string | null>>,
                 colors: project.colors as Partial<Record<PartSlot, string>> | undefined,
@@ -305,6 +326,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
             z.object({
               id: ProjectIdSchema,
               name: z.string(),
+              view: ViewSchema.optional(),
               selections: z.record(SlotSchema, z.string().nullable()),
               colors: z.record(SlotSchema, z.string()).optional(),
             }),
@@ -323,6 +345,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
           const saved = await composeAndSave(root, {
             id: ch.id,
             name: ch.name,
+            view: ch.view,
             selections: ch.selections as Partial<Record<PartSlot, string | null>>,
             colors: ch.colors as Partial<Record<PartSlot, string>> | undefined,
             dir: saveDir,
@@ -333,6 +356,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
               project: saved.project,
               preset: exportPreset as ExportPresetId,
               dir: exportDir,
+              baseName: saved.project.id,
             });
           }
           results.push({ ok: true, id: saved.project.id, path: saved.path, warnings: saved.warnings, exported });
@@ -349,7 +373,7 @@ export function createEasySpriteMcp(workspaceRoot: string): McpServer {
     {
       title: "Build showcase",
       description:
-        "Write an animated HTML cast showcase (Walk/Wave/Cheer + 4 directions) to a folder. Reads project JSON from projectsDir (default workspace projects/).",
+        "Write an animated HTML cast showcase (Walk/Wave/Cheer + direction switcher; top-down and side-view characters can mix) to a folder. Reads project JSON from projectsDir (default workspace projects/).",
       inputSchema: {
         projectIds: z
           .array(z.string())

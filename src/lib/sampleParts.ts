@@ -3,15 +3,17 @@ import path from "node:path";
 import {
   BODY_TYPES,
   DEFAULT_CONFIG,
-  DEFAULT_DIRECTIONS,
   DEFAULT_FRAMES,
   SPECIES,
+  directionsForView,
+  idForView,
   type AnimFrame,
   type BodyType,
   type Build,
   type Direction,
   type PartMeta,
   type PartSlot,
+  type ViewMode,
 } from "../shared/types.js";
 import { encodePng } from "./png.js";
 import { ANIMAL_NAMES, COLLAR_SPECIES, animalBaseColor, animalCell, collarCell } from "./sprite/animals.js";
@@ -195,9 +197,12 @@ const SAMPLES: SampleDef[] = [
   },
 ];
 
-function buildSheet(sample: SampleDef, groups: Build[]): Buffer {
+/** Animal art is shared between cameras; side view only drops it onto the lower ground line. */
+const SIDE_ANIMAL_DROP = 2;
+
+function buildSheet(sample: SampleDef, groups: Build[], view: ViewMode): Buffer {
   const { frameSize } = DEFAULT_CONFIG;
-  const dirs = DEFAULT_DIRECTIONS;
+  const dirs = directionsForView(view);
   const width = frameSize * DEFAULT_FRAMES.length;
   const height = frameSize * dirs.length * groups.length;
   const pixels = new Uint8Array(width * height * 4);
@@ -206,9 +211,11 @@ function buildSheet(sample: SampleDef, groups: Build[]): Buffer {
     dirs.forEach((direction, d) => {
       DEFAULT_FRAMES.forEach((frame, col) => {
         let cell: Cell;
-        if (sample.cell) cell = sample.cell(direction, frame, bodyType);
-        else {
-          const rig = rigFor(direction, frame, bodyType as BodyType);
+        if (sample.cell) {
+          cell = sample.cell(direction, frame, bodyType);
+          if (view === "side") cell = cell.shifted(0, SIDE_ANIMAL_DROP);
+        } else {
+          const rig = rigFor(direction, frame, bodyType as BodyType, view);
           cell = new Cell();
           sample.draw?.(cell, rig);
           if (rig.lie) cell = cell.rotated(rig.lie, rig.lieDrop);
@@ -235,30 +242,35 @@ export async function writeSampleParts(workspaceRoot: string): Promise<PartMeta[
   }
 
   const created: PartMeta[] = [];
-  for (const sample of SAMPLES) {
-    const groups = sample.bodyType ? [sample.bodyType] : (sample.groups ?? BODY_TYPES);
-    const dir = path.join(partsRoot, sample.slot, sample.id);
-    await rm(dir, { recursive: true, force: true });
-    await mkdir(dir, { recursive: true });
+  for (const view of ["topdown", "side"] as const) {
+    const directions = directionsForView(view);
+    for (const sample of SAMPLES) {
+      const groups = sample.bodyType ? [sample.bodyType] : (sample.groups ?? BODY_TYPES);
+      const id = idForView(sample.id, view);
+      const dir = path.join(partsRoot, sample.slot, id);
+      await rm(dir, { recursive: true, force: true });
+      await mkdir(dir, { recursive: true });
 
-    const meta: PartMeta = {
-      id: sample.id,
-      name: sample.name,
-      slot: sample.slot,
-      zIndex: sample.zIndex,
-      frameSize,
-      columns: DEFAULT_FRAMES.length,
-      rows: DEFAULT_DIRECTIONS.length * groups.length,
-      directions: [...DEFAULT_DIRECTIONS],
-      frames: [...DEFAULT_FRAMES],
-      sheet: "sheet.png",
-      ...(sample.bodyType ? { bodyType: sample.bodyType } : { bodyTypes: [...groups] }),
-      ...(sample.recolor ? { recolor: sample.recolor } : {}),
-    };
+      const meta: PartMeta = {
+        id,
+        name: sample.name,
+        slot: sample.slot,
+        zIndex: sample.zIndex,
+        frameSize,
+        columns: DEFAULT_FRAMES.length,
+        rows: directions.length * groups.length,
+        directions: [...directions],
+        frames: [...DEFAULT_FRAMES],
+        sheet: "sheet.png",
+        ...(sample.bodyType ? { bodyType: sample.bodyType } : { bodyTypes: [...groups] }),
+        ...(sample.recolor ? { recolor: sample.recolor } : {}),
+        ...(view === "side" ? { view } : {}),
+      };
 
-    await writeFile(path.join(dir, "sheet.png"), buildSheet(sample, groups));
-    await writeFile(path.join(dir, "part.json"), `${JSON.stringify(meta, null, 2)}\n`);
-    created.push(meta);
+      await writeFile(path.join(dir, "sheet.png"), buildSheet(sample, groups, view));
+      await writeFile(path.join(dir, "part.json"), `${JSON.stringify(meta, null, 2)}\n`);
+      created.push(meta);
+    }
   }
 
   return created;

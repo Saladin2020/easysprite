@@ -10,7 +10,11 @@ import {
   type ExportPresetId,
   type PartMeta,
   type PartSlot,
+  type ViewMode,
+  directionsForView,
+  idForView,
   isSpecies,
+  viewOf,
 } from "../shared/types.js";
 import { encodePng } from "./png.js";
 import { recolorRgba } from "./recolor.js";
@@ -172,18 +176,19 @@ function projectMeta(project: CharacterProject) {
   return {
     id: project.id,
     name: project.name,
+    view: viewOf(project),
     selections: project.selections,
     colors: project.colors ?? {},
   };
 }
 
-function slugify(name: string): string {
+function slugify(name: string, fallback = "character"): string {
   return (
     name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "_")
       .replace(/^_|_$/g, "")
-      .slice(0, 48) || "character"
+      .slice(0, 48) || fallback
   );
 }
 
@@ -204,11 +209,10 @@ export async function buildExportFiles(options: {
   const config = await loadConfig(root);
   // Prefer id over display name — Thai names slugify to junk (e.g. "ลุง… (MCP)" → "mcp").
   const baseName =
-    slugify(options.baseName || "") ||
-    slugify(project.id) ||
-    slugify(project.name) ||
-    "character";
+    slugify(options.baseName || "", "") || slugify(project.id, "") || slugify(project.name);
   const frameSize = config.frameSize;
+  const view = viewOf(project);
+  const directions = directionsForView(view, config);
 
   const writeGrid = async (directions: Direction[], frames: AnimFrame[], prefix: string) => {
     const { width, height, pixels } = await renderSheetPixels(
@@ -230,6 +234,7 @@ export async function buildExportFiles(options: {
   };
 
   if (preset === "rpgmaker_mv") {
+    if (view === "side") throw new Error("RPG Maker MV/MZ sheets need top-down parts — use native, godot or frames for side-view");
     const grid = await writeGrid(
       ["front", "left", "right", "back"],
       ["walk0", "walk1", "walk2"],
@@ -259,7 +264,7 @@ export async function buildExportFiles(options: {
   if (preset === "frames") {
     const files: ExportFile[] = [];
     const index: Array<{ direction: Direction; frame: AnimFrame; file: string }> = [];
-    for (const dir of config.directions) {
+    for (const dir of directions) {
       for (const fr of config.frames) {
         const { pixels } = await renderSheetPixels(root, parts, project, [dir], [fr], frameSize);
         const file = `frames/${baseName}/${dir}_${fr}.png`;
@@ -271,6 +276,7 @@ export async function buildExportFiles(options: {
       filename: `frames/${baseName}/atlas.json`,
       json: {
         format: "easysprite.frames",
+        view,
         frameSize,
         frames: index,
         project: projectMeta(project),
@@ -279,10 +285,10 @@ export async function buildExportFiles(options: {
     return { preset, primary: `frames/${baseName}/`, files };
   }
 
-  const grid = await writeGrid(config.directions, config.frames, preset === "godot" ? `godot/${baseName}` : baseName);
+  const grid = await writeGrid(directions, config.frames, preset === "godot" ? `godot/${baseName}` : baseName);
   if (preset === "godot") {
     const sprites: Record<string, { frame: { x: number; y: number; w: number; h: number } }> = {};
-    config.directions.forEach((dir, row) => {
+    directions.forEach((dir, row) => {
       config.frames.forEach((fr, col) => {
         sprites[`${dir}_${fr}`] = {
           frame: { x: col * frameSize, y: row * frameSize, w: frameSize, h: frameSize },
@@ -298,6 +304,7 @@ export async function buildExportFiles(options: {
           filename: `${grid.prefix}.json`,
           json: {
             format: "godot_atlas",
+            view,
             textures: [
               {
                 image: `${baseName}.png`,
@@ -309,7 +316,7 @@ export async function buildExportFiles(options: {
               ANIM_PRESETS.map((anim) => [
                 anim.id,
                 {
-                  directions: config.directions,
+                  directions,
                   frames: anim.frames.filter((f) => config.frames.includes(f)),
                   speed: Math.round(1000 / anim.ms),
                   loop: anim.loop,
@@ -332,10 +339,11 @@ export async function buildExportFiles(options: {
         filename: `${grid.prefix}.json`,
         json: {
           format: "easysprite.native",
+          view,
           frameSize,
           columns: config.frames.length,
-          rows: config.directions.length,
-          directions: config.directions,
+          rows: directions.length,
+          directions,
           frames: config.frames,
           project: projectMeta(project),
         },
@@ -365,14 +373,45 @@ export async function writeExportFiles(
   return { dir: outDir, paths };
 }
 
+/** Explicit view wins; otherwise follow the selected body's camera. */
+export function inferView(
+  parts: PartMeta[],
+  selections: Partial<Record<PartSlot, string | null>>,
+  view?: ViewMode,
+): ViewMode {
+  if (view) return view;
+  return viewOf(parts.find((p) => p.id === selections.body));
+}
+
 export function normalizeSelections(
   parts: PartMeta[],
   selections: Partial<Record<PartSlot, string | null>>,
   colors?: CharacterProject["colors"],
-): { selections: CharacterProject["selections"]; colors: CharacterProject["colors"]; warnings: string[] } {
+  view?: ViewMode,
+): {
+  selections: CharacterProject["selections"];
+  colors: CharacterProject["colors"];
+  view: ViewMode;
+  warnings: string[];
+} {
   const warnings: string[] = [];
+  const nextView = inferView(parts, selections, view);
   const next: CharacterProject["selections"] = { ...selections };
   const nextColors: CharacterProject["colors"] = { ...(colors ?? {}) };
+
+  for (const [slot, id] of Object.entries(next) as Array<[PartSlot, string | null]>) {
+    if (!id) continue;
+    const part = parts.find((p) => p.id === id);
+    if (!part || viewOf(part) === nextView) continue;
+    const swapped = idForView(id, nextView);
+    if (parts.some((p) => p.id === swapped)) {
+      next[slot] = swapped;
+      warnings.push(`Part "${id}" is ${viewOf(part)} — swapped to "${swapped}" for ${nextView}`);
+    } else {
+      next[slot] = null;
+      warnings.push(`Part "${id}" is ${viewOf(part)} and has no ${nextView} version — cleared`);
+    }
+  }
 
   if (next.hair_front && !next.hair_back) {
     const backId = next.hair_front.replace(/_front$/, "_back");
@@ -405,7 +444,7 @@ export function normalizeSelections(
 
   if (!next.body) warnings.push("No body selected — export will fail until a body is set");
 
-  return { selections: next, colors: nextColors, warnings };
+  return { selections: next, colors: nextColors, view: nextView, warnings };
 }
 
 export async function composeAndSave(
@@ -415,17 +454,19 @@ export async function composeAndSave(
     name: string;
     selections: Partial<Record<PartSlot, string | null>>;
     colors?: CharacterProject["colors"];
+    view?: ViewMode;
     dir?: string;
   },
 ): Promise<{ project: CharacterProject; path: string; warnings: string[] }> {
   const parts = await loadParts(root);
-  const { selections, colors, warnings } = normalizeSelections(parts, input.selections, input.colors);
+  const { selections, colors, view, warnings } = normalizeSelections(parts, input.selections, input.colors, input.view);
   const project: CharacterProject = {
     id: slugify(input.id),
     name: input.name,
     updatedAt: new Date().toISOString(),
     selections,
     colors,
+    ...(view === "side" ? { view } : {}),
   };
   const saved = await saveProject(root, project, input.dir);
   return { project: saved.project, path: saved.path, warnings };
@@ -449,8 +490,8 @@ export async function exportProject(
   }
   if (!project) throw new Error("project or projectId required");
 
-  const normalized = normalizeSelections(parts, project.selections, project.colors);
-  project = { ...project, selections: normalized.selections, colors: normalized.colors };
+  const normalized = normalizeSelections(parts, project.selections, project.colors, project.view);
+  project = { ...project, selections: normalized.selections, colors: normalized.colors, view: normalized.view };
   const preset = options.preset ?? "native";
   const bundle = await buildExportFiles({
     root,

@@ -20,12 +20,12 @@ export const MCP_TOOLS: McpToolInfo[] = [
   {
     name: "workspace_info",
     title: "Workspace info",
-    description: "Root, slots, species, anim/export presets, part counts. Call first.",
+    description: "Root, slots, species, view modes, anim/export presets, part counts. Call first.",
   },
   {
     name: "list_parts",
     title: "List parts",
-    description: "Filter bodies/clothes/animals by slot, query, or bodyType.",
+    description: "Filter bodies/clothes/animals by view (topdown/side), slot, query, or bodyType.",
   },
   {
     name: "list_projects",
@@ -40,7 +40,7 @@ export const MCP_TOOLS: McpToolInfo[] = [
   {
     name: "compose_character",
     title: "Compose character",
-    description: "Save selections + colors to a project file.",
+    description: "Save view + selections + colors to a project file.",
   },
   {
     name: "export_character",

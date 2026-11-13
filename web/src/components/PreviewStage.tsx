@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnimFrame, CharacterProject, Direction, PartMeta } from "../types";
+import { viewOf } from "../types";
 import { drawCharacterFrame } from "../compositor";
 
 interface PreviewStageProps {
@@ -21,6 +22,7 @@ const BACKDROPS = [
   { id: "path", label: "Dirt path" },
   { id: "checker", label: "Transparent checker" },
   { id: "night", label: "Night" },
+  { id: "sky", label: "Side-scroller sky" },
 ] as const;
 type Backdrop = (typeof BACKDROPS)[number]["id"];
 const BACKDROP_KEY = "easysprite.backdrop";
@@ -123,7 +125,7 @@ export function PreviewStage({
   }, [playing, frameSize, direction, playFrames, frameMs, loop]);
 
   return (
-    <div className={`stage stage-${backdrop}`}>
+    <div className={`stage stage-${backdrop} view-${viewOf(project)}`}>
       <div className="stage-backdrops" role="group" aria-label="Preview background">
         {BACKDROPS.map((b) => (
           <button

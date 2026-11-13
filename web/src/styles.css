@@ -473,10 +473,75 @@ select {
     linear-gradient(180deg, #121428, #1c2338);
 }
 
+.stage-sky {
+  background:
+    radial-gradient(ellipse 30% 12% at 22% 22%, rgba(255, 255, 255, 0.85) 60%, transparent 62%),
+    radial-gradient(ellipse 22% 9% at 74% 14%, rgba(255, 255, 255, 0.7) 60%, transparent 62%),
+    radial-gradient(ellipse 70% 30% at 15% 100%, #5f9f6a 60%, transparent 61%),
+    radial-gradient(ellipse 60% 26% at 85% 100%, #6aac72 60%, transparent 61%),
+    linear-gradient(180deg, #7cc0e4, #c9e8f2);
+}
+
 .stage-frame {
   position: relative;
   width: min(100%, 384px);
   line-height: 0;
+}
+
+/* Side-view: a ground strip level with the sprite's feet (row 44 of 48). */
+.view-side .stage-frame::before {
+  content: "";
+  position: absolute;
+  top: calc(100% * 45 / 48);
+  left: -100vw;
+  right: -100vw;
+  height: 100vh;
+  background:
+    linear-gradient(180deg, #79c48a 0 6px, #4f8f5c 6px 9px, transparent 9px),
+    repeating-linear-gradient(90deg, #6b4a2e 0 24px, #5e3f26 24px 48px);
+  border-top: var(--px) solid var(--ink);
+}
+
+.view-side .stage-shadow {
+  display: none;
+}
+
+.view-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.view-switch button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+}
+
+.view-switch button small {
+  color: var(--faint);
+  font-size: 0.66rem;
+  font-weight: 400;
+}
+
+.view-switch button.active {
+  background: var(--accent);
+  color: #2a1606;
+}
+
+.view-switch button.active small {
+  color: #5a3410;
+}
+
+.tag-sky {
+  color: #10202a;
+  background: #8ecae6;
+  border-color: #5a9ab8;
+  font-weight: 600;
 }
 
 .stage-shadow {
@@ -544,11 +609,15 @@ select {
 .swatch-night {
   background: linear-gradient(180deg, #121428, #2c4a5a);
 }
+.swatch-sky {
+  background: linear-gradient(180deg, #8ecae6 0 60%, #79c48a 60% 75%, #6b4a2e 75%);
+}
 
 .swatch-grass:hover:not(:disabled),
 .swatch-path:hover:not(:disabled),
 .swatch-checker:hover:not(:disabled),
-.swatch-night:hover:not(:disabled) {
+.swatch-night:hover:not(:disabled),
+.swatch-sky:hover:not(:disabled) {
   filter: brightness(1.2);
 }
 
@@ -888,6 +957,12 @@ select {
 .tag-mcp {
   font-style: normal;
   color: var(--accent);
+  font-size: 0.68rem;
+}
+
+.tag-side {
+  font-style: normal;
+  color: #8ecae6;
   font-size: 0.68rem;
 }
 

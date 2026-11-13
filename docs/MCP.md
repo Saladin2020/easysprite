@@ -52,11 +52,11 @@ Reload MCP; badge should say **User**.
 | Tool | Purpose |
 |---|---|
 | `workspace_info` | Root, slots, species, anim/export presets, counts |
-| `list_parts` | Filter parts by slot / query / bodyType |
+| `list_parts` | Filter parts by view (`topdown` default / `side`) / slot / query / bodyType |
 | `list_projects` | Saved characters |
 | `get_project` | One project JSON |
-| `compose_character` | Save selections (+ colors) to a project file |
-| `export_character` | Server-side sheet export (`native`, `rpgmaker_mv`, `godot`, `frames`) |
+| `compose_character` | Save view + selections (+ colors) to a project file. Wrong-camera ids swap to their twin |
+| `export_character` | Server-side sheet export (`native`, `rpgmaker_mv` top-down only, `godot`, `frames`) |
 | `batch_compose` | Many characters, optional export |
 | `build_showcase` | Animated HTML cast (Walk/Wave/Cheer + 4 dirs) from `projectsDir` into output `dir` |
 
@@ -65,8 +65,8 @@ Prompt: `easysprite-operator` — full compose-only playbook for agents (never i
 ## Typical agent flow
 
 1. `workspace_info`
-2. `list_parts` (e.g. slot `shirt`, query `mohom`)
-3. `compose_character` with a `body` id and other slots
+2. `list_parts` (e.g. slot `shirt`, query `mohom`; add `view: "side"` for side-scroller parts, ids `side_*`)
+3. `compose_character` with a `body` id, other slots, and `view` when building side-view
 4. `export_character` with `projectId` and optional `dir`
 
 Animals: `body` = `animal_dog`, `animal_cat`, … Human clothes are skipped on animals unless the part lists that species in `bodyTypes` (e.g. `acc_pet_collar`).

@@ -5,7 +5,7 @@
 # Easy Sprite
 
 **ร้านแต่งตัวละครพิกเซล · หมู่บ้านอบอุ่น**  
-Compose modular **48px** top-down ¾ chibi sprites — RPG Maker / Stardew vibe for a Thai cozy-village game.
+Compose modular **48px** chibi sprites for a Thai cozy-village game — **top-down ¾** (RPG Maker / Stardew) or **side-view** (side-scroller / HD-2D village scenes).
 
 [![CI](https://github.com/Saladin2020/easysprite/actions/workflows/ci.yml/badge.svg)](https://github.com/Saladin2020/easysprite/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-2e2014?style=flat-square)](LICENSE)
@@ -41,12 +41,34 @@ Dress a whole village cast without redrawing every sheet: bodies, clothes, hair,
   <img src="docs/assets/mcp_test_dog_som.png" height="96" alt="Dog" />
 </p>
 
-Native export sheets (4 directions × 30 frames):
+Native top-down export sheets (4 directions × 30 frames):
 
 <p align="center">
   <img src="docs/assets/sheet-leo.png" width="420" alt="Leo native sheet" />
   <img src="docs/assets/sheet-emma.png" width="420" alt="Emma native sheet" />
 </p>
+
+---
+
+## Two cameras: top-down / side-view
+
+Flip **Top-down ↔ Side-view** in panel 1 and the outfit carries over. Every top-down part has a side-view twin with taller proportions and a lower ground line.
+
+| | Top-down | Side-view |
+| --- | --- | --- |
+| Use for | RPG Maker, Stardew-style maps | platformers, side-scrolling village scenes |
+| Rows | `front right back left` | `right left front` |
+| Part ids | `shirt_mohom` | `side_shirt_mohom` |
+| Exports | native · RPG Maker · Godot · frames | native · Godot · frames |
+
+<p align="center">
+  <img src="docs/assets/side-cast.png" width="720" alt="Side-view cast (last card is the top-down farmer for comparison)" />
+</p>
+<p align="center">
+  <img src="docs/assets/side-walk.png" width="420" alt="Side-view walk cycle: right, left, front" />
+</p>
+
+Projects store `"view": "side"`. MCP agents pass `view` to `list_parts` / `compose_character`. Ids from the wrong camera are swapped to their twin automatically.
 
 ---
 
@@ -118,7 +140,8 @@ Favicon + Apple touch icon + `site.webmanifest` ship in `web/public/`.
 
 - Slot paperdoll: `hair_back → body → pants → shoes → shirt → face → hair_front → accessory`
 - Recolor with hue-aware shading (hair front/back sync)
-- Timeline preview: walk / wave / cheer / … · 4 directions
+- Two cameras: top-down ¾ (4 directions) and side-view (right / left / front), one switch
+- Timeline preview: walk / wave / cheer / … with a side-scroller sky + ground backdrop
 - Save / export to **any folder** (Browse + remember last paths)
 - Animated **showcase** gallery (HTML) with direction + anim controls
 - **MCP** tools for Cursor / HTTP agents — compose & export without clicking ([docs/MCP.md](docs/MCP.md))
@@ -157,7 +180,8 @@ parts/<slot>/<part_id>/
   part.json
 ```
 
-30 columns = frame list · 4-row blocks per direction (`front right back left`).  
+30 columns = frame list · one row per entry in `directions` (top-down `front right back left`, side-view `right left front`).  
+Side-view parts set `"view": "side"` and use a `side_` id prefix.  
 Wearables that fit several builds list `bodyTypes` and stack one block per build.  
 Animals are full bodies: `animal_<species>`. Human clothes skip animals unless `bodyTypes` includes that species (`acc_pet_collar`).
 

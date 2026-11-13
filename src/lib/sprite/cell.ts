@@ -154,6 +154,10 @@ export class Cell {
     return this.remap((x, y) => [CELL - 1 - x, y]);
   }
 
+  shifted(dx: number, dy: number): Cell {
+    return this.remap((x, y) => [x + dx, y + dy]);
+  }
+
   /** Quarter turn: 1 = counter-clockwise (head ends up on the left), -1 = clockwise. */
   rotated(dir: 1 | -1, drop: number): Cell {
     return this.remap((x, y) => (dir === 1 ? [y, CELL - 1 - x + drop] : [CELL - 1 - y, x + drop]));

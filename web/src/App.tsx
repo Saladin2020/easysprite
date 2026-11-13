@@ -14,9 +14,20 @@ import type {
   Direction,
   ExportPresetId,
   PartSlot,
+  ViewMode,
   WorkspaceSummary,
 } from "./types";
-import { ANIM_PRESETS, EXPORT_PRESETS, isSpecies } from "./types";
+import {
+  ANIM_PRESETS,
+  EXPORT_PRESETS,
+  VIEW_MODES,
+  directionsForView,
+  isSpecies,
+  projectForView,
+  viewOf,
+} from "./types";
+
+const TOPDOWN_ONLY_PRESETS: ExportPresetId[] = ["rpgmaker_mv"];
 
 function slugify(name: string): string {
   return (
@@ -83,7 +94,7 @@ export function App() {
           id: "untitled",
           name: "Untitled",
           updatedAt: new Date().toISOString(),
-          selections: { body: data.parts.find((p) => p.slot === "body")?.id ?? null },
+          selections: { body: data.parts.find((p) => p.slot === "body" && viewOf(p) === "topdown")?.id ?? null },
           colors: defaults,
         };
         setProject({
@@ -102,16 +113,41 @@ export function App() {
   }, []);
 
   const build = workspace && project ? bodyTypeOf(workspace.parts, project) : undefined;
+  const view = viewOf(project);
+  const viewDirections = useMemo(
+    () => directionsForView(view, workspace?.config),
+    [view, workspace],
+  );
+  const viewParts = useMemo(
+    () => workspace?.parts.filter((p) => viewOf(p) === view) ?? [],
+    [workspace, view],
+  );
+
+  useEffect(() => {
+    if (!viewDirections.includes(direction)) setDirection(viewDirections[0]!);
+    if (view === "side" && TOPDOWN_ONLY_PRESETS.includes(exportPreset)) setExportPreset("native");
+  }, [viewDirections, direction, view, exportPreset]);
 
   const partsInSlot = useMemo(() => {
-    if (!workspace) return [];
     const q = partFilter.trim().toLowerCase();
-    return workspace.parts.filter((p) => {
+    return viewParts.filter((p) => {
       if (p.slot !== activeSlot || !fitsBuild(p, build)) return false;
       if (!q) return true;
       return p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
     });
-  }, [workspace, activeSlot, partFilter, build]);
+  }, [viewParts, activeSlot, partFilter, build]);
+
+  const switchView = (next: ViewMode) => {
+    if (!project || !workspace || next === view) return;
+    const known = new Set(workspace.parts.map((p) => p.id));
+    const mapped = projectForView(project, next);
+    for (const [slot, id] of Object.entries(mapped.selections) as Array<[PartSlot, string | null]>) {
+      if (id && !known.has(id)) mapped.selections[slot] = null;
+    }
+    setProject(mapped);
+    setStatusKind("ok");
+    setStatus(`Camera → ${VIEW_MODES.find((v) => v.id === next)?.label} (outfit carried over)`);
+  };
 
   const activeSlotMeta = workspace?.config.slots.find((s) => s.id === activeSlot);
   const selectedPart = useMemo(() => {
@@ -234,7 +270,7 @@ export function App() {
         parts: workspace.parts,
         project,
         frameSize: workspace.config.frameSize,
-        directions: workspace.config.directions,
+        directions: viewDirections,
         frames: workspace.config.frames,
         baseName,
       });
@@ -286,9 +322,11 @@ export function App() {
             </h1>
             <p className="brand-th">ร้านแต่งตัวละครพิกเซล · หมู่บ้านอบอุ่น</p>
             <div className="sub">
-              <span className="tag">{workspace.config.artStyle ?? "rpgmaker-stardew-topdown-chibi"}</span>
+              <span className={`tag${view === "side" ? " tag-sky" : ""}`}>
+                {VIEW_MODES.find((v) => v.id === view)?.artStyle}
+              </span>
               <span className="tag">{workspace.config.frameSize}px</span>
-              <span className="tag">{workspace.parts.length} parts</span>
+              <span className="tag">{viewParts.length} parts</span>
               <span className="tag tag-leaf">compose only</span>
             </div>
           </div>
@@ -358,7 +396,11 @@ export function App() {
                 onChange={(e) => setExportPreset(e.target.value as ExportPresetId)}
               >
                 {EXPORT_PRESETS.map((p) => (
-                  <option key={p.id} value={p.id}>
+                  <option
+                    key={p.id}
+                    value={p.id}
+                    disabled={view === "side" && TOPDOWN_ONLY_PRESETS.includes(p.id)}
+                  >
                     {p.label}
                   </option>
                 ))}
@@ -376,6 +418,20 @@ export function App() {
           <h2>
             <span className="step">1</span>Character
           </h2>
+          <div className="view-switch" role="group" aria-label="Camera view">
+            {VIEW_MODES.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className={view === v.id ? "active" : ""}
+                aria-pressed={view === v.id}
+                onClick={() => switchView(v.id)}
+              >
+                {v.label}
+                <small>{v.id === "side" ? "ฉากด้านข้าง · platformer" : "มุมบน ¾ · RPG / Stardew"}</small>
+              </button>
+            ))}
+          </div>
           <div className="field">
             <label htmlFor="project-pick">Preset character</label>
             <select
@@ -391,11 +447,18 @@ export function App() {
                 });
               }}
             >
-              {workspace.projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {VIEW_MODES.map((v) => {
+                const list = workspace.projects.filter((p) => viewOf(p) === v.id);
+                return list.length ? (
+                  <optgroup key={v.id} label={v.label}>
+                    {list.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null;
+              })}
             </select>
           </div>
           <div className="field">
@@ -463,7 +526,7 @@ export function App() {
             loop={activeAnim.loop}
           />
           <Timeline
-            directions={workspace.config.directions}
+            directions={viewDirections}
             frames={workspace.config.frames}
             direction={direction}
             frame={frame}

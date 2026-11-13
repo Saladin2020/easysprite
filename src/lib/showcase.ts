@@ -6,6 +6,10 @@ import {
   type AnimPresetId,
   type CharacterProject,
   type Direction,
+  type ViewMode,
+  VIEW_MODES,
+  directionsForView,
+  viewOf,
 } from "../shared/types.js";
 import { encodePng, outlineRect, type Rgba } from "./png.js";
 import { renderSheetPixels } from "./compose.js";
@@ -16,8 +20,6 @@ const GRASS_B: Rgba = [102, 174, 96, 255];
 const FRAME: Rgba = [36, 24, 14, 255];
 
 const SHOWCASE_ANIMS: AnimPresetId[] = ["walk", "wave", "cheer", "idle"];
-const SHOWCASE_DIRS: Direction[] = ["front", "right", "back", "left"];
-
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -123,18 +125,21 @@ async function renderAnimGrid(
   return { png: encodePng(width, height, pixels), cell, frameCount, dirCount };
 }
 
+interface ShowcaseEntry {
+  id: string;
+  name: string;
+  view: ViewMode;
+  body: string | null;
+  anims: Record<
+    string,
+    { file: string; frames: number; dirs: number; dirNames: Direction[]; ms: number; label: string }
+  >;
+}
+
 function buildHtml(options: {
   title: string;
   subtitle: string;
-  entries: Array<{
-    id: string;
-    name: string;
-    body: string | null;
-    anims: Record<
-      string,
-      { file: string; frames: number; dirs: number; ms: number; label: string }
-    >;
-  }>;
+  entries: ShowcaseEntry[];
   columns: number;
   cell: number;
   defaultAnim: AnimPresetId;
@@ -146,10 +151,11 @@ function buildHtml(options: {
     return `<button type="button" class="anim-btn${active}" data-anim="${id}">${escapeHtml(p.label)}</button>`;
   }).join("\n      ");
 
+  const firstDir = options.directions[0];
   const dirButtons = options.directions
     .map(
-      (d, i) =>
-        `<button type="button" class="dir-btn${i === 0 ? " active" : ""}" data-dir="${i}" data-dir-name="${d}">${d}</button>`,
+      (d) =>
+        `<button type="button" class="dir-btn${d === firstDir ? " active" : ""}" data-dir="${d}">${d}</button>`,
     )
     .join("\n      ");
 
@@ -157,12 +163,14 @@ function buildHtml(options: {
     .map((e) => {
       const walk = e.anims[options.defaultAnim] ?? Object.values(e.anims)[0]!;
       const animJson = escapeHtml(JSON.stringify(e.anims));
-      return `    <figure class="card" data-anims='${animJson}'>
+      const row = Math.max(0, walk.dirNames.indexOf(firstDir!));
+      const badge = e.view === "side" ? `<em class="view-tag">side</em>` : "";
+      return `    <figure class="card view-${e.view}" data-anims='${animJson}'>
       <div class="stage">
-        <div class="strip${walk.frames > 1 ? "" : " still"}" style="--n:${walk.frames};--d:${walk.dirs};--dir:0;background-image:url('${escapeHtml(walk.file)}');animation-duration:${walk.frames * walk.ms}ms"></div>
+        <div class="strip${walk.frames > 1 ? "" : " still"}" style="--n:${walk.frames};--d:${walk.dirs};--dir:${row};background-image:url('${escapeHtml(walk.file)}');animation-duration:${walk.frames * walk.ms}ms"></div>
       </div>
       <figcaption>
-        <strong>${escapeHtml(e.name)}</strong>
+        <strong>${escapeHtml(e.name)}${badge}</strong>
         <span>${escapeHtml(e.id)}</span>
       </figcaption>
     </figure>`;
@@ -291,6 +299,15 @@ function buildHtml(options: {
     figcaption { margin-top: .55rem; }
     figcaption strong { display: block; font-size: .95rem; }
     figcaption span { color: var(--muted); font-size: .72rem; word-break: break-all; }
+    .view-tag {
+      margin-left: .4rem;
+      padding: 0 .3rem;
+      font: normal .62rem "Silkscreen", monospace;
+      color: #10202a;
+      background: #8ecae6;
+      vertical-align: middle;
+    }
+    .view-side .stage { background: linear-gradient(180deg, #9fd3ef 0 78%, #6b4a2e 78%); }
     footer {
       max-width: 1100px;
       margin: 1.5rem auto 0;
@@ -327,7 +344,7 @@ ${cards}
   <script>
     (function () {
       var currentAnim = ${JSON.stringify(options.defaultAnim)};
-      var currentDir = 0;
+      var currentDir = ${JSON.stringify(firstDir)};
       var playBtn = document.getElementById("toggle-play");
       var animButtons = document.querySelectorAll(".anim-btn");
       var dirButtons = document.querySelectorAll(".dir-btn");
@@ -338,7 +355,7 @@ ${cards}
           b.classList.toggle("active", b.getAttribute("data-anim") === currentAnim);
         });
         dirButtons.forEach(function (b) {
-          b.classList.toggle("active", Number(b.getAttribute("data-dir")) === currentDir);
+          b.classList.toggle("active", b.getAttribute("data-dir") === currentDir);
         });
         cards.forEach(function (card) {
           var map = JSON.parse(card.getAttribute("data-anims") || "{}");
@@ -348,7 +365,8 @@ ${cards}
           if (!strip) return;
           strip.style.setProperty("--n", String(clip.frames));
           strip.style.setProperty("--d", String(clip.dirs));
-          strip.style.setProperty("--dir", String(currentDir));
+          // Side-view cards have no back row; they keep facing right.
+          strip.style.setProperty("--dir", String(Math.max(0, (clip.dirNames || []).indexOf(currentDir))));
           strip.style.backgroundImage = "url('" + clip.file + "')";
           strip.style.animationDuration = (clip.frames * clip.ms) + "ms";
           strip.classList.toggle("still", clip.frames < 2);
@@ -366,7 +384,7 @@ ${cards}
       });
       dirButtons.forEach(function (b) {
         b.addEventListener("click", function () {
-          currentDir = Number(b.getAttribute("data-dir")) || 0;
+          currentDir = b.getAttribute("data-dir") || currentDir;
           applyAll();
         });
       });
@@ -463,8 +481,8 @@ export async function buildShowcase(
   const cell = config.frameSize * scale + pad * 2;
   const defaultAnim: AnimPresetId =
     options.anim && SHOWCASE_ANIMS.includes(options.anim) ? options.anim : "walk";
-  const directions =
-    config.directions?.length > 0 ? ([...config.directions] as Direction[]) : SHOWCASE_DIRS;
+  const usedViews = VIEW_MODES.map((v) => v.id).filter((v) => projects.some((p) => viewOf(p) === v));
+  const directions = [...new Set(usedViews.flatMap((v) => directionsForView(v, config)))];
 
   const gap = 8;
   const rows = Math.ceil(projects.length / columns);
@@ -478,16 +496,7 @@ export async function buildShowcase(
     sheetPixels[i + 3] = 255;
   }
 
-  type Entry = {
-    id: string;
-    name: string;
-    body: string | null;
-    file: string;
-    anims: Record<
-      string,
-      { file: string; frames: number; dirs: number; ms: number; label: string }
-    >;
-  };
+  type Entry = ShowcaseEntry & { file: string };
   const entries: Entry[] = [];
   const paths: string[] = [];
 
@@ -495,13 +504,15 @@ export async function buildShowcase(
     const project = projects[i]!;
     const anims: Entry["anims"] = {};
 
+    const view = viewOf(project);
+    const projectDirs = directionsForView(view, config);
     for (const animId of SHOWCASE_ANIMS) {
       const preset = presetMeta(animId);
       const grid = await renderAnimGrid(
         root,
         parts,
         project,
-        directions,
+        projectDirs,
         preset.frames,
         config.frameSize,
         scale,
@@ -515,6 +526,7 @@ export async function buildShowcase(
         file: rel.replace(/\\/g, "/"),
         frames: grid.frameCount,
         dirs: grid.dirCount,
+        dirNames: projectDirs,
         ms: preset.ms,
         label: preset.label,
       };
@@ -565,6 +577,7 @@ export async function buildShowcase(
     entries.push({
       id: project.id,
       name: project.name,
+      view,
       body: project.selections.body ?? null,
       file: portraitRel.replace(/\\/g, "/"),
       anims,
@@ -572,7 +585,10 @@ export async function buildShowcase(
   }
 
   const title = options.title?.trim() || "Easy Sprite Showcase";
-  const subtitle = `หมู่บ้านอบอุ่น · ${projects.length} ตัวละคร · ขยับได้ · หันได้ 4 ทิศ`;
+  const sideCount = entries.filter((e) => e.view === "side").length;
+  const views =
+    sideCount === 0 ? "top-down" : sideCount === entries.length ? "side-view" : `top-down + ${sideCount} side-view`;
+  const subtitle = `หมู่บ้านอบอุ่น · ${projects.length} ตัวละคร · ${views} · ขยับได้ · เลือกทิศได้`;
   const html = buildHtml({
     title,
     subtitle,
