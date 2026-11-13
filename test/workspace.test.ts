@@ -39,8 +39,13 @@ describe("resolveOutDir", () => {
   });
 
   it("allows folders from EASYSPRITE_ALLOWED_DIRS", () => {
-    process.env.EASYSPRITE_ALLOWED_DIRS = path.resolve("/srv/game");
-    expect(resolveOutDir(root, "/srv/game/sprites", "exports")).toBe(path.resolve("/srv/game/sprites"));
+    // Use a sibling of the temp workspace so this passes on Windows too
+    // (path.resolve("/srv/game") is not a portable absolute path there).
+    const allowed = path.join(path.dirname(root), "env-allowed");
+    process.env.EASYSPRITE_ALLOWED_DIRS = allowed;
+    expect(resolveOutDir(root, path.join(allowed, "sprites"), "exports")).toBe(
+      path.join(allowed, "sprites"),
+    );
   });
 });
 
