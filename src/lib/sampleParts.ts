@@ -99,6 +99,9 @@ const FACES: Array<[FaceStyle, string, string]> = [
   ["beard", "face_beard", "Face (beard)"],
   ["elder", "face_elder", "Face (elder)"],
   ["glasses", "face_glasses", "Face (glasses)"],
+  ["frown", "face_frown", "Face (frown)"],
+  ["surprise", "face_surprise", "Face (surprise)"],
+  ["wink", "face_wink", "Face (wink)"],
 ];
 
 const HAIR: Array<[HairStyle, string, string]> = [
@@ -157,6 +160,7 @@ const ACCESSORIES: Array<[AccKind, string, string, string, number?]> = [
   ["cane", "acc_cane", "Walking Cane", "#7a5230", 60],
   ["ngob", "acc_ngob", "Ngob (Straw Hat)", "#d4b06a", 50],
   ["flower", "acc_flower", "Flower Clip", "#e86a9a"],
+  ["alms_bowl", "acc_alms_bowl", "Alms Bowl (Bat / บาตร)", "#2a221c", 50],
 ];
 
 const SAMPLES: SampleDef[] = [

@@ -65,7 +65,7 @@ Prompt: `easysprite-operator` — full compose-only playbook for agents (never i
 ## Typical agent flow
 
 1. `workspace_info`
-2. `list_parts` (e.g. slot `shirt`, query `mohom`; add `view: "side"` for side-scroller parts, ids `side_*`). Monk: query `robe` / `จีวร` → `shirt_monk_robe` + `hair_shaved_front` (+ optional `pants_sabong`)
+2. `list_parts` (e.g. slot `shirt`, query `mohom`; add `view: "side"` for side-scroller parts, ids `side_*`). Monk: query `robe` / `จีวร` → `shirt_monk_robe` + `hair_shaved_front` + `acc_alms_bowl` (บาตร) (+ optional `pants_sabong`)
 3. `compose_character` with a `body` id, other slots, and `view` when building side-view
 4. `export_character` with `projectId` and optional `dir`
 
