@@ -20,7 +20,9 @@ import { ANIMAL_NAMES, COLLAR_SPECIES, animalBaseColor, animalCell, collarCell }
 import { SKIN, bodyPost, drawBody, drawFace, facePost, type FaceStyle } from "./sprite/body.js";
 import { Cell, rgba } from "./sprite/cell.js";
 import {
+  drawMonkRobe,
   drawPants,
+  drawShavedHead,
   drawShirt,
   drawShoes,
   type PantsKind,
@@ -132,7 +134,11 @@ const PANTS: Array<[PantsKind, string, string, string]> = [
   ["jeans", "pants_jeans", "Jeans", "#2f4a6e"],
   ["sarong", "pants_sarong", "Sarong (Pha Sin)", "#5b3a7a"],
   ["fisherman", "pants_fisherman", "Fisherman Pants", "#3b3a5e"],
+  ["sabong", "pants_sabong", "Monk Lower Robe (Sabong / สบง)", "#d9781e"],
 ];
+
+/** Thai Buddhist monk set: saffron robe, matching lower robe (in PANTS) and a shaved head. */
+export const MONK_ROBE_BASE = "#e0841f";
 
 const SHOES: Array<[ShoeKind, string, string, string, number]> = [
   ["dark", "shoes_dark", "Dark Shoes", "#221c18", 40],
@@ -170,6 +176,8 @@ const SAMPLES: SampleDef[] = [
   ...SHIRTS.map(([kind, id, name, main, accent, tol]) =>
     def(id, name, "shirt", drawShirt(kind, rgba(main), rgba(accent)), main, tol ?? 70),
   ),
+  def("shirt_monk_robe", "Monk Robe (Chiwon / จีวร)", "shirt", drawMonkRobe(rgba(MONK_ROBE_BASE)), MONK_ROBE_BASE, 70),
+  def("hair_shaved_front", "Shaved Head (โกนหัว)", "hair_front", drawShavedHead(rgba("#4a5a6a")), "#4a5a6a", 60),
   ...PANTS.map(([kind, id, name, hex]) => def(id, name, "pants", drawPants(kind, rgba(hex)), hex)),
   ...SHOES.map(([kind, id, name, hex, tol]) => def(id, name, "shoes", drawShoes(kind, rgba(hex)), hex, tol)),
   ...ACCESSORIES.map(([kind, id, name, hex, tol]) =>

@@ -25,6 +25,7 @@ const SIDE_DEMOS = [
   "young_knight",
   "grandma",
   "little_boy",
+  "temple_monk",
   "pet_dog",
   "pet_chicken",
 ];
@@ -161,6 +162,13 @@ function topdownDemos(): CharacterProject[] {
       pants: ["pants_fisherman", "#2a2a2a"],
       shoes: ["shoes_sandals", "#8a6a44"],
       accessory: ["acc_cane", "#5a3a22"],
+    }),
+    demo("temple_monk", "Temple Monk (Luang Phi)", {
+      body: ["body_tan", "#c9956c"],
+      face: ["face_neutral"],
+      hair_front: ["hair_shaved_front", "#4a5a6a"],
+      shirt: ["shirt_monk_robe", "#e0841f"],
+      shoes: ["shoes_sandals", "#8a6a44"],
     }),
     demo("village_guard", "Village Guard", {
       body: ["body_stocky_tan", "#c9956c"],

@@ -55,6 +55,7 @@ Optional: list_projects / get_project to edit or re-export an existing character
 
 ## Thai cozy village taste
 Prefer village-friendly looks (ม่อฮ่อม / mohom, pha sin / sarong, farmer clothes, pets) over fantasy armor unless the user asks otherwise. Match names in Thai or English to real part names/ids via list_parts query.
+Monks (พระ / เณร): shirt_monk_robe (จีวร, full saffron robe to the shins — no pants needed) + hair_shaved_front + shoes_sandals; pants_sabong (สบง) is the matching lower robe for a tank-top / angsa look. Use side_ ids in side view.
 
 ## User request
 ${ask}`;

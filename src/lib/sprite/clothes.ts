@@ -1,4 +1,4 @@
-import { type Cell, type Pt, type Rgba, polyLen, shade, shape, tint, trimPoly } from "./cell.js";
+import { Cell, type Pt, type Rgba, polyLen, shade, shape, tint, trimPoly } from "./cell.js";
 import { ankleOf, cutArms, footBox, torsoCx, type Arm, type Draw, type Leg, type Rig } from "./rig.js";
 
 const WHITE: Rgba = [250, 248, 242, 255];
@@ -217,7 +217,7 @@ export function drawShirt(kind: ShirtKind, main: Rgba, accent: Rgba): Draw {
 
 // ---------------------------------------------------------------------------
 
-export type PantsKind = "pants" | "shorts" | "skirt" | "jeans" | "sarong" | "fisherman";
+export type PantsKind = "pants" | "shorts" | "skirt" | "jeans" | "sarong" | "fisherman" | "sabong";
 
 export function drawPants(kind: PantsKind, col: Rgba): Draw {
   const sh = shade(col, 0.78);
@@ -243,9 +243,24 @@ export function drawPants(kind: PantsKind, col: Rgba): Draw {
     const legPts = (l: Leg) => {
       if (kind === "shorts") return trimPoly(l.pts, Math.max(2, 3 * r.scale));
       if (kind === "fisherman" || kind === "sarong") return trimPoly(l.pts, Math.max(1, len(l) - 1.5));
+      if (kind === "sabong") return trimPoly(l.pts, Math.max(2, len(l) - shinGap(r)));
       return l.pts;
     };
-    const legW = kind === "fisherman" ? r.legW + 2 : kind === "sarong" ? r.legW + 1 : r.legW;
+    const legW = kind === "fisherman" ? r.legW + 2 : kind === "sarong" || kind === "sabong" ? r.legW + 1 : r.legW;
+
+    if (kind === "sabong") {
+      shape(c, (t) => {
+        t.rect(x, hy - 3, w, 4, col);
+        for (const l of r.legs) t.poly(legPts(l), legW, col);
+        const bottom = Math.max(...r.legs.map((l) => legPts(l).at(-1)![1]));
+        fillSkirtRows(t, hy, bottom, col, sh, shade(col, 0.62));
+        // rolled waist fold (the robe is tucked, not belted)
+        t.rect(x, hy - 3, w, 1, hl);
+        t.rect(x, hy - 2, w, 1, sh);
+      });
+      cutArms(c, r);
+      return;
+    }
 
     if (kind === "sarong") {
       shape(c, (t) => {
@@ -322,5 +337,128 @@ export function drawShoes(kind: ShoeKind, col: Rgba): Draw {
     };
     for (const l of r.legs.filter((x) => x.behind)) one(l, shade(col, 0.8));
     for (const l of r.legs.filter((x) => !x.behind)) one(l, col);
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Thai Buddhist monk robe (จีวร / chiwon) and its helpers
+
+/** How much shin the robe hem leaves visible above the ankle. */
+const shinGap = (r: Rig): number => Math.max(2, Math.round(3 * r.scale));
+
+/** Fill each row between the leftmost and rightmost painted pixel: turns two legs into one hanging cloth. */
+function fillSkirtRows(t: Cell, top: number, bottom: number, col: Rgba, pleat: Rgba, hem: Rgba): void {
+  for (let yy = top; yy <= bottom; yy++) {
+    let lo = 99;
+    let hi = -1;
+    for (let xx = 0; xx < 48; xx++) {
+      if (t.alpha(xx, yy) === 0) continue;
+      lo = Math.min(lo, xx);
+      hi = Math.max(hi, xx);
+    }
+    if (hi < lo) continue;
+    t.rect(lo, yy, hi - lo + 1, 1, yy === bottom ? hem : col);
+    if (yy < bottom) for (let px = lo + 2; px < hi - 1; px += 3) t.set(px, yy, pleat);
+  }
+}
+
+/**
+ * Full-length saffron robe: drapes over the left shoulder, leaves the right shoulder and arm bare,
+ * and hangs to the shins so it works with no pants (or over `pants_sabong`).
+ */
+export function drawMonkRobe(col: Rgba): Draw {
+  const sh = shade(col, 0.8);
+  const deep = shade(col, 0.62);
+  const hl = tint(col, 0.28);
+  return (c, r) => {
+    const { x, y, w } = r.torso;
+    const hy = r.hipY;
+    const front = r.view === "front";
+    const back = r.view === "back";
+    const side = r.view === "side";
+    const drop = shinGap(r);
+    const shins = (l: Leg): Pt[] => trimPoly(l.pts, Math.max(2, polyLen(l.pts) - drop));
+    // Arm wrapped in the robe: the monk's left. Front view: screen right; back: screen left; side (facing right): far arm.
+    const draped = (a: Arm, i: number) => (side ? a.behind : front ? i === 1 : i === 0);
+    const sleeve = (a: Arm): Pt[] => trimPoly(a.pts, Math.max(2, polyLen(a.pts) * 0.55));
+
+    r.arms.forEach((a, i) => {
+      if (a.behind && draped(a, i)) shape(c, (t) => t.poly(sleeve(a), r.armW + 1, sh));
+    });
+
+    shape(c, (t) => {
+      // upper robe + hanging cloth over both legs
+      t.round(x, y, w, hy - y + 2, 2, col);
+      for (const l of r.legs) t.poly(shins(l), r.legW + 2, col);
+      const bottom = Math.max(...r.legs.map((l) => shins(l).at(-1)![1]));
+      fillSkirtRows(t, hy - 1, bottom, col, sh, deep);
+
+      // bare right shoulder: a diagonal opening from one armpit up to the opposite shoulder
+      const rows = Math.max(4, Math.round((hy - y) * 0.5));
+      for (let i = 0; i < rows; i++) {
+        const bare = Math.round((w - 4) * (1 - i / rows));
+        if (bare <= 0) continue;
+        for (let k = 0; k < bare; k++) {
+          // front: monk's right = screen left; back: screen right; side: front of chest (screen right)
+          const px = front ? x + k : x + w - 1 - k;
+          if (front || back || k < bare - 1) t.erase(px, y + i);
+        }
+        // fold line along the opening edge
+        const ex = front ? x + bare : x + w - 1 - bare;
+        t.set(ex, y + i, i === 0 ? hl : deep);
+      }
+
+      // over-shoulder band (the folded sanghati) and a drape line down the body
+      if (front) {
+        t.rect(x + w - 3, y, 2, 1, hl);
+        t.line([x + w - 3, y + 1], [x + 1, hy - 1], 1, sh);
+      } else if (back) {
+        t.rect(x + 1, y, 3, 1, hl);
+        t.line([x + 2, y + 1], [x + w - 2, hy - 1], 1, sh);
+        t.rect(x + 3, y + 2, 1, hy - y - 3, sh);
+      } else {
+        t.rect(x, y, 3, 1, hl);
+        t.rect(x, y + 1, 1, hy - y, sh);
+      }
+      // tucked waist roll
+      t.rect(x, hy - 2, w, 1, sh);
+    });
+    cutArms(c, r);
+
+    r.arms.forEach((a, i) => {
+      if (!a.behind && draped(a, i)) {
+        shape(c, (t) => {
+          const s = sleeve(a);
+          t.poly(s, r.armW + 1, col);
+          const [ex, ey] = s.at(-1)!;
+          t.set(ex, ey, deep);
+        });
+      }
+    });
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Shaved head: a translucent stubble cap so it works on every skin tone.
+
+export function drawShavedHead(col: Rgba): Draw {
+  const cap: Rgba = [col[0], col[1], col[2], 64];
+  const edge: Rgba = [col[0], col[1], col[2], 110];
+  return (c, r) => {
+    const { x, y, w, h } = r.head;
+    const sy = (n: number) => Math.round((n * h) / 16);
+    const t = new Cell();
+    if (r.view === "front") {
+      t.round(x + 1, y + 1, w - 2, sy(6), 3, cap);
+      for (let i = 2; i < w - 2; i++) t.set(x + i, y + sy(6), edge);
+    } else if (r.view === "back") {
+      t.round(x + 1, y + 1, w - 2, h - sy(4), 3, cap);
+    } else {
+      t.round(x + 1, y + 1, w - 3, sy(5), 3, cap);
+      t.round(x + 1, y + 2, 6, h - sy(5), 2, cap);
+    }
+    for (let yy = 0; yy < 48; yy++) for (let xx = 0; xx < 48; xx++) if (t.alpha(xx, yy) > 0) c.copyPixel(t, xx, yy);
+    // a one-pixel shine so the scalp reads as round
+    c.set(x + (r.view === "side" ? 6 : 4), y + 2, [255, 255, 255, 70]);
   };
 }
