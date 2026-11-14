@@ -43,6 +43,12 @@ Dress a whole village cast without redrawing every sheet: bodies, clothes, hair,
   <img src="docs/assets/mcp_side_pier_kid.png" height="96" alt="Pier kid side" />
 </p>
 
+Thai temple set — `shirt_monk_robe` (จีวร: saffron, over the left shoulder, right shoulder bare, hangs to the shins), `pants_sabong` (สบง lower robe) and `hair_shaved_front` (translucent stubble cap that works on any skin tone), in both cameras (`side_` twins):
+
+<p align="center">
+  <img src="docs/assets/monk-robe-lineup.png" width="576" alt="Monk robe lineup: side view and top-down, adult, child, elder, stocky" />
+</p>
+
 Native top-down export sheets (4 directions × 30 frames):
 
 <p align="center">
@@ -192,7 +198,8 @@ parts/<slot>/<part_id>/
 30 columns = frame list · one row per entry in `directions` (top-down `front right back left`, side-view `right left front`).  
 Side-view parts set `"view": "side"` and use a `side_` id prefix.  
 Wearables that fit several builds list `bodyTypes` and stack one block per build.  
-Animals are full bodies: `animal_<species>`. Human clothes skip animals unless `bodyTypes` includes that species (`acc_pet_collar`).
+Animals are full bodies: `animal_<species>`. Human clothes skip animals unless `bodyTypes` includes that species (`acc_pet_collar`).  
+Sample library: 87 parts per camera (174 total). Full-length outfits such as `shirt_monk_robe` live in the `shirt` slot (z 40, above pants), so they cover the legs without a pants part.
 
 ---
 
