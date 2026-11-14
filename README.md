@@ -67,6 +67,27 @@ Thai temple set — `shirt_monk_robe` (จีวร: saffron, over the left shou
   <img src="docs/assets/monk-robe-lineup.png" width="576" alt="Monk robe lineup: side view and top-down, adult, child, elder, stocky" />
 </p>
 
+### Multicultural village: Buddhist · Muslim · Chinese-Thai
+
+The village is shared by neighbours of every faith, so the library dresses all of them. Next to the temple set there is a **Muslim community (ชุมชนมุสลิม) set** for southern Thai / Thai-Malay kampung casts (Pattani, Satun, Bangkok), in both cameras:
+
+| Part | ไทย | Notes |
+| --- | --- | --- |
+| `hair_hijab_front` · `hair_hijab_shawl_front` | ฮิญาบ | wrap and pashmina styles; frame the face, cover hair, ears and neck in every direction, drape over the chest |
+| `hair_tudung_sarung_front` | ผ้าคลุมสวม (tudung sarung) | slip-on tudung with the stiff forehead awning |
+| `hair_tudung_school_front` | ผ้าคลุมนักเรียนตาดีกา | long white school tudung for Tadika girls |
+| `acc_kopiah` · `acc_songkok` | กะปิเยาะห์ · ซอเกาะ | white knitted cap and black velvet cap (accessory slot, like `acc_cap`) |
+| `shirt_jubah` | ญุบบะฮ์ / thobe | ankle-length robe, no pants needed |
+| `shirt_baju_melayu` | บาจูมลายู | cekak musang collar, gold buttons and a songket samping |
+| `shirt_baju_kurung` | บาจูกูรง | knee-length tunic; pair with `pants_sarong` or `pants_skirt` |
+| `pants_kain_pelekat` | ผ้าโสร่งตาหมากรุก | checked men's sarong with a rolled waist |
+
+All of them recolor. Hijab and tudung live in `hair_front`; leave `hair_back` empty. New demo characters: `hijab_teacher`, `roti_seller`, `mak_yah`, `tadika_girl`, `kopiah_boy`, `songkok_groom`, `pak_cik_jubah`, `pelekat_fisher` (plus `side_` versions of four).
+
+<p align="center">
+  <img src="docs/assets/muslim-community-cast.png" width="900" alt="Muslim community cast next to the existing monk and noodle auntie: hijab, tudung, kopiah, songkok, jubah, baju melayu, baju kurung, kain pelekat" />
+</p>
+
 Native top-down export sheets (4 directions × 30 frames):
 
 <p align="center">
@@ -217,7 +238,7 @@ parts/<slot>/<part_id>/
 Side-view parts set `"view": "side"` and use a `side_` id prefix.  
 Wearables that fit several builds list `bodyTypes` and stack one block per build.  
 Animals are full bodies: `animal_<species>`. Human clothes skip animals unless `bodyTypes` includes that species (`acc_pet_collar`).  
-Sample library: 91 parts per camera (182 total). Full-length outfits such as `shirt_monk_robe` live in the `shirt` slot (z 40, above pants), so they cover the legs without a pants part. Pair the robe with `acc_alms_bowl` (บาตร) in the accessory slot.
+Sample library: 101 parts per camera (202 total). Full-length outfits such as `shirt_monk_robe` and `shirt_jubah` live in the `shirt` slot (z 40, above pants), so they cover the legs without a pants part. Pair the robe with `acc_alms_bowl` (บาตร) in the accessory slot.
 
 ---
 

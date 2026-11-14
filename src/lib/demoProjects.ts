@@ -3,6 +3,9 @@ import { ANIMAL_NAMES, COLLAR_SPECIES, animalBaseColor } from "./sprite/animals.
 
 type Look = Partial<Record<PartSlot, [id: string, color?: string]>>;
 
+/** hair_front parts that have no matching hair_back (shaved head, hijab / tudung). */
+const FRONT_ONLY = /^(hair_shaved|hair_hijab|hair_hijab_shawl|hair_tudung_[a-z]+)_front$/;
+
 function demo(id: string, name: string, look: Look): CharacterProject {
   const selections: CharacterProject["selections"] = {};
   const colors: CharacterProject["colors"] = {};
@@ -10,7 +13,7 @@ function demo(id: string, name: string, look: Look): CharacterProject {
     selections[slot] = value[0];
     if (value[1]) colors[slot] = value[1];
   }
-  if (selections.hair_front && !selections.hair_back) {
+  if (selections.hair_front && !selections.hair_back && !FRONT_ONLY.test(selections.hair_front)) {
     selections.hair_back = selections.hair_front.replace(/_front$/, "_back");
     if (colors.hair_front) colors.hair_back = colors.hair_front;
   }
@@ -26,6 +29,10 @@ const SIDE_DEMOS = [
   "grandma",
   "little_boy",
   "temple_monk",
+  "hijab_teacher",
+  "tadika_girl",
+  "kopiah_boy",
+  "pelekat_fisher",
   "pet_dog",
   "pet_chicken",
 ];
@@ -170,6 +177,75 @@ function topdownDemos(): CharacterProject[] {
       shirt: ["shirt_monk_robe", "#e0841f"],
       shoes: ["shoes_sandals", "#8a6a44"],
       accessory: ["acc_alms_bowl", "#2a221c"],
+    }),
+    // Muslim community (southern Thai / Thai-Malay kampung)
+    demo("hijab_teacher", "Kru Aisyah (Hijab Teacher)", {
+      body: ["body_tan", "#c9956c"],
+      face: ["face_lashes"],
+      hair_front: ["hair_hijab_front", "#2f7a6a"],
+      shirt: ["shirt_baju_kurung", "#e6d3a3"],
+      pants: ["pants_sarong", "#2f5a6e"],
+      shoes: ["shoes_dark", "#221c18"],
+    }),
+    demo("roti_seller", "Kak Nur (Roti Seller, Shawl Hijab)", {
+      body: ["body_light", "#e8c4a0"],
+      face: ["face_smile"],
+      hair_front: ["hair_hijab_shawl_front", "#b0485e"],
+      shirt: ["shirt_apron", "#6b3f2a"],
+      pants: ["pants_sarong", "#5b3a7a"],
+      shoes: ["shoes_sandals", "#8a6a44"],
+      accessory: ["acc_basket", "#c48a3a"],
+    }),
+    demo("mak_yah", "Mak Yah (Tudung Sarung Auntie)", {
+      body: ["body_stocky_deep", "#8a5a3c"],
+      face: ["face_smile"],
+      hair_front: ["hair_tudung_sarung_front", "#4a3a7a"],
+      shirt: ["shirt_baju_kurung", "#c86a3a"],
+      pants: ["pants_sarong", "#6b3f2a"],
+      shoes: ["shoes_sandals", "#8a6a44"],
+    }),
+    demo("tadika_girl", "Nurul (Tadika Girl, School Tudung)", {
+      body: ["body_child_tan", "#c9956c"],
+      face: ["face_smile"],
+      hair_front: ["hair_tudung_school_front", "#f4f2ec"],
+      shirt: ["shirt_baju_kurung", "#3f7fa6"],
+      pants: ["pants_skirt", "#3f7fa6"],
+      shoes: ["shoes_dark", "#221c18"],
+      accessory: ["acc_backpack", "#c0587e"],
+    }),
+    demo("kopiah_boy", "Adam (Kopiah Boy, Baju Melayu)", {
+      body: ["body_child_light", "#e8c4a0"],
+      face: ["face_neutral"],
+      hair_front: ["hair_crop_front", "#2a221c"],
+      shirt: ["shirt_baju_melayu", "#3f8a5a"],
+      pants: ["pants_kain_pelekat", "#7a2a3a"],
+      shoes: ["shoes_sandals", "#8a6a44"],
+      accessory: ["acc_kopiah", "#f0eee8"],
+    }),
+    demo("songkok_groom", "Pak Hamid (Songkok, Hari Raya Best)", {
+      body: ["body_deep", "#8a5a3c"],
+      face: ["face_mustache"],
+      hair_front: ["hair_crop_front", "#2a221c"],
+      shirt: ["shirt_baju_melayu", "#2b5a8a"],
+      pants: ["pants_brown", "#2b3a4a"],
+      shoes: ["shoes_dark", "#221c18"],
+      accessory: ["acc_songkok", "#26262c"],
+    }),
+    demo("pak_cik_jubah", "Pak Cik Ismail (Jubah, Kopiah, Beard)", {
+      body: ["body_elder_tan", "#c9956c"],
+      face: ["face_beard"],
+      shirt: ["shirt_jubah", "#e8e6e0"],
+      shoes: ["shoes_sandals", "#8a6a44"],
+      accessory: ["acc_kopiah", "#f0eee8"],
+    }),
+    demo("pelekat_fisher", "Bang Man (Kolek Fisher, Kain Pelekat)", {
+      body: ["body_deep", "#8a5a3c"],
+      face: ["face_smile"],
+      hair_front: ["hair_crop_front", "#2a221c"],
+      shirt: ["shirt_tshirt", "#d8d0b8"],
+      pants: ["pants_kain_pelekat", "#2f4a6e"],
+      shoes: ["shoes_sandals", "#8a6a44"],
+      accessory: ["acc_fishing", "#6b7280"],
     }),
     demo("village_guard", "Village Guard", {
       body: ["body_stocky_tan", "#c9956c"],
