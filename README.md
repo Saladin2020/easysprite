@@ -199,7 +199,7 @@ parts/<slot>/<part_id>/
 Side-view parts set `"view": "side"` and use a `side_` id prefix.  
 Wearables that fit several builds list `bodyTypes` and stack one block per build.  
 Animals are full bodies: `animal_<species>`. Human clothes skip animals unless `bodyTypes` includes that species (`acc_pet_collar`).  
-Sample library: 87 parts per camera (174 total). Full-length outfits such as `shirt_monk_robe` live in the `shirt` slot (z 40, above pants), so they cover the legs without a pants part.
+Sample library: 91 parts per camera (182 total). Full-length outfits such as `shirt_monk_robe` live in the `shirt` slot (z 40, above pants), so they cover the legs without a pants part. Pair the robe with `acc_alms_bowl` (บาตร) in the accessory slot.
 
 ---
 

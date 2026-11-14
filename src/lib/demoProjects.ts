@@ -169,6 +169,7 @@ function topdownDemos(): CharacterProject[] {
       hair_front: ["hair_shaved_front", "#4a5a6a"],
       shirt: ["shirt_monk_robe", "#e0841f"],
       shoes: ["shoes_sandals", "#8a6a44"],
+      accessory: ["acc_alms_bowl", "#2a221c"],
     }),
     demo("village_guard", "Village Guard", {
       body: ["body_stocky_tan", "#c9956c"],

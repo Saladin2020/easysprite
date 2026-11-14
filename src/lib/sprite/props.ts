@@ -19,7 +19,8 @@ export type AccKind =
   | "sword"
   | "cane"
   | "ngob"
-  | "flower";
+  | "flower"
+  | "alms_bowl";
 
 interface Pole {
   butt: Pt;
@@ -266,6 +267,47 @@ export function drawAccessory(kind: AccKind, col: Rgba): Draw {
             t.rect(out > 0 ? gx : gx - 2, Math.max(0, gy - 12), 3, 1, col);
           }
           t.set(gx, gy - 1, hl);
+        });
+        cutArms(c, r);
+        break;
+      }
+
+      case "alms_bowl": {
+        // Thai Buddhist alms bowl (บาตร): dark lacquered iron, held at the waist for บิณฑบาต.
+        const [hx, hy] = holdingHand(r);
+        const cx = torsoCx(r);
+        let bx: number;
+        let by: number;
+        if (lying(r)) {
+          bx = side ? torso.x + torso.w + 3 : cx + 8;
+          by = r.ground - 3;
+        } else if (r.pose === "sit") {
+          bx = side ? torso.x + torso.w + 1 : cx;
+          by = torso.y + torso.h + 1;
+        } else if (r.pose === "carry") {
+          bx = side ? torso.x + torso.w + 2 : cx;
+          by = torso.y + 6;
+        } else if (side) {
+          bx = Math.max(torso.x + torso.w + 1, hx + 1);
+          by = Math.min(torso.y + torso.h - 1, hy + 1);
+        } else {
+          // Front and back: centre the bowl on the waist; hideBehindBody covers it from behind.
+          bx = cx;
+          by = Math.min(torso.y + torso.h - 1, Math.max(torso.y + 5, hy + 1));
+        }
+        const inner = shade(col, 0.55);
+        shape(c, (t) => {
+          // hemisphere body + rim; a short saffron wrap stripe sits under the lip
+          t.ellipse(bx, by + 1, 5, 3.4, col);
+          t.ellipse(bx, by, 5, 2.1, sh);
+          t.rect(bx - 4, by - 1, 8, 1, hl);
+          t.rect(bx - 3, by, 6, 1, inner);
+          t.set(bx - 2, by - 1, tint(col, 0.45));
+          // cloth wrap (ผ้าคลุมบาตร) — a 1px saffron band, still reads if the bowl is recoloured
+          const wrap: Rgba = [224, 132, 31, 255];
+          t.rect(bx - 3, by + 2, 6, 1, wrap);
+          t.set(bx + 3, by + 2, shade(wrap, 0.75));
+          if (back && !lying(r)) hideBehindBody(t, r);
         });
         cutArms(c, r);
         break;

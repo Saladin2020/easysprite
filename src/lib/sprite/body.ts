@@ -77,9 +77,12 @@ export type FaceStyle =
   | "mustache"
   | "beard"
   | "elder"
-  | "glasses";
+  | "glasses"
+  | "frown"
+  | "surprise"
+  | "wink";
 
-type Eyes = "open" | "closed" | "half" | "x" | "squint" | "angry";
+type Eyes = "open" | "closed" | "half" | "x" | "squint" | "angry" | "wide";
 
 function eyesFor(r: Rig, style: FaceStyle): Eyes {
   switch (r.pose) {
@@ -96,16 +99,21 @@ function eyesFor(r: Rig, style: FaceStyle): Eyes {
     case "attackHit":
       return "angry";
     default:
-      return style === "blink" ? "half" : "open";
+      if (style === "blink") return "half";
+      if (style === "surprise") return "wide";
+      return "open";
   }
 }
 
-function mouthFor(r: Rig, style: FaceStyle): "line" | "smile" | "open" | "small" {
+function mouthFor(r: Rig, style: FaceStyle): "line" | "smile" | "open" | "small" | "frown" | "o" {
   if (r.pose === "sleep") return "small";
   if (r.pose === "hurt" || r.pose === "fall" || r.pose === "ko" || r.pose === "attackHit") return "open";
   if (r.pose === "tired") return r.phase ? "open" : "small";
   if (r.pose === "cheer" || (r.pose === "jump" && r.phase === 1)) return "smile";
-  return style === "smile" || style === "elder" ? "smile" : "line";
+  if (style === "frown") return "frown";
+  if (style === "surprise") return "o";
+  if (style === "smile" || style === "elder" || style === "wink") return "smile";
+  return "line";
 }
 
 export function drawFace(style: FaceStyle): Draw {
@@ -121,13 +129,20 @@ export function drawFace(style: FaceStyle): Draw {
 
     eyeXs.forEach((ex, i) => {
       const right = !side && i === 1;
-      switch (eyes) {
+      // Wink closes the screen-left eye (the only eye in side view).
+      const shut = style === "wink" && (side || i === 0) && eyes === "open";
+      switch (shut ? "closed" : eyes) {
         case "closed":
           c.rect(ex, eyeY + 2, 2, 1, EYE);
           break;
         case "half":
           c.rect(ex, eyeY + 1, 2, 2, EYE);
           c.rect(ex, eyeY + 1, 2, 1, shade(EYE, 1.6));
+          break;
+        case "wide":
+          c.rect(ex, eyeY - 1, 2, 4, EYE);
+          c.set(ex, eyeY - 1, WHITE);
+          c.set(ex + 1, eyeY, WHITE);
           break;
         case "x": {
           const bx = right ? ex - 1 : ex;
@@ -142,7 +157,7 @@ export function drawFace(style: FaceStyle): Draw {
         default:
           c.rect(ex, eyeY + (small ? 1 : 0), 2, small ? 2 : 3, EYE);
           c.set(ex, eyeY + (small ? 1 : 0), WHITE);
-          if (eyes === "angry") {
+          if (eyes === "angry" || style === "frown") {
             const inner = right || side ? ex : ex + 1;
             const outer = right || side ? ex + 1 : ex;
             c.set(outer, eyeY - 2, EYE);
@@ -195,14 +210,23 @@ export function drawFace(style: FaceStyle): Draw {
     const mouthCol = style === "beard" ? EYE : lip;
     if (side) {
       c.set(mx, my, mouthCol);
-      if (mouth === "open") c.set(mx, my + 1, EYE);
+      if (mouth === "open" || mouth === "o") c.set(mx, my + 1, EYE);
       if (mouth === "smile") c.set(mx - 1, my - 1, mouthCol);
-    } else if (mouth === "open") {
+      if (mouth === "frown") c.set(mx - 1, my + 1, mouthCol);
+    } else if (mouth === "open" || mouth === "o") {
       c.rect(mx, my - 1, 2, 2, EYE);
+      if (mouth === "o") {
+        c.set(mx - 1, my, mouthCol);
+        c.set(mx + 2, my, mouthCol);
+      }
     } else if (mouth === "smile") {
       c.set(mx - 1, my - 1, mouthCol);
       c.rect(mx, my, 2, 1, mouthCol);
       c.set(mx + 2, my - 1, mouthCol);
+    } else if (mouth === "frown") {
+      c.set(mx - 1, my, mouthCol);
+      c.rect(mx, my - 1, 2, 1, mouthCol);
+      c.set(mx + 2, my, mouthCol);
     } else if (mouth === "small") {
       c.set(mx + 1, my, mouthCol);
     } else {
