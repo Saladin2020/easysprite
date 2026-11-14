@@ -30,6 +30,15 @@ import {
   type ShoeKind,
 } from "./sprite/clothes.js";
 import { drawHairBack, drawHairFront, type HairStyle } from "./sprite/hair.js";
+import {
+  drawHijab,
+  drawKainPelekat,
+  drawMuslimCap,
+  drawMuslimTop,
+  type CapKind,
+  type HijabStyle,
+  type RobeKind,
+} from "./sprite/muslimWear.js";
 import { drawAccessory, type AccKind } from "./sprite/props.js";
 import { rigFor, type Draw, type Post } from "./sprite/rig.js";
 
@@ -143,6 +152,28 @@ const PANTS: Array<[PantsKind, string, string, string]> = [
 /** Thai Buddhist monk set: saffron robe, matching lower robe (in PANTS) and a shaved head. */
 export const MONK_ROBE_BASE = "#e0841f";
 
+/**
+ * Muslim community wear (southern Thai / Thai-Malay kampung). Hijab and tudung are hair_front parts
+ * (pick no hair_back); kopiah and songkok are accessories like acc_cap.
+ */
+const HIJABS: Array<[HijabStyle, string, string, string]> = [
+  ["wrap", "hair_hijab_front", "Hijab (wrap / ฮิญาบ)", "#2f7a6a"],
+  ["shawl", "hair_hijab_shawl_front", "Hijab (shawl / pashmina)", "#b0485e"],
+  ["sarung", "hair_tudung_sarung_front", "Tudung Sarung (ผ้าคลุมสวม)", "#4a3a7a"],
+  ["school", "hair_tudung_school_front", "School Tudung (Tadika / ตาดีกา)", "#e8e6e0"],
+];
+
+const MUSLIM_CAPS: Array<[CapKind, string, string, string]> = [
+  ["kopiah", "acc_kopiah", "Kopiah (white cap / หมวกกะปิเยาะห์)", "#f0eee8"],
+  ["songkok", "acc_songkok", "Songkok (black velvet cap / หมวกซอเกาะ)", "#26262c"],
+];
+
+const MUSLIM_TOPS: Array<[RobeKind, string, string, string, string]> = [
+  ["jubah", "shirt_jubah", "Jubah / Thobe (ญุบบะฮ์)", "#e8e6e0", "#c8b88a"],
+  ["melayu", "shirt_baju_melayu", "Baju Melayu + Samping (บาจูมลายู)", "#2b5a8a", "#7a2a3a"],
+  ["kurung", "shirt_baju_kurung", "Baju Kurung (บาจูกูรง)", "#3f7fa6", "#e8d27a"],
+];
+
 const SHOES: Array<[ShoeKind, string, string, string, number]> = [
   ["dark", "shoes_dark", "Dark Shoes", "#221c18", 40],
   ["boots", "shoes_boots", "Boots", "#5a3a22", 50],
@@ -182,6 +213,12 @@ const SAMPLES: SampleDef[] = [
   ),
   def("shirt_monk_robe", "Monk Robe (Chiwon / จีวร)", "shirt", drawMonkRobe(rgba(MONK_ROBE_BASE)), MONK_ROBE_BASE, 70),
   def("hair_shaved_front", "Shaved Head (โกนหัว)", "hair_front", drawShavedHead(rgba("#4a5a6a")), "#4a5a6a", 60),
+  ...HIJABS.map(([style, id, name, hex]) => def(id, name, "hair_front", drawHijab(style, rgba(hex)), hex, 70)),
+  ...MUSLIM_TOPS.map(([kind, id, name, main, accent]) =>
+    def(id, name, "shirt", drawMuslimTop(kind, rgba(main), rgba(accent)), main, 70),
+  ),
+  def("pants_kain_pelekat", "Kain Pelekat (ผ้าโสร่งตาหมากรุก)", "pants", drawKainPelekat(rgba("#7a2a3a"), rgba("#e8d27a")), "#7a2a3a", 70),
+  ...MUSLIM_CAPS.map(([kind, id, name, hex]) => def(id, name, "accessory", drawMuslimCap(kind, rgba(hex)), hex, 60)),
   ...PANTS.map(([kind, id, name, hex]) => def(id, name, "pants", drawPants(kind, rgba(hex)), hex)),
   ...SHOES.map(([kind, id, name, hex, tol]) => def(id, name, "shoes", drawShoes(kind, rgba(hex)), hex, tol)),
   ...ACCESSORIES.map(([kind, id, name, hex, tol]) =>

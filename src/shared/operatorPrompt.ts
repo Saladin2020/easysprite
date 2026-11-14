@@ -56,6 +56,7 @@ Optional: list_projects / get_project to edit or re-export an existing character
 ## Thai cozy village taste
 Prefer village-friendly looks (ม่อฮ่อม / mohom, pha sin / sarong, farmer clothes, pets) over fantasy armor unless the user asks otherwise. Match names in Thai or English to real part names/ids via list_parts query.
 Monks (พระ / เณร): shirt_monk_robe (จีวร, full saffron robe to the shins — no pants needed) + hair_shaved_front + shoes_sandals + acc_alms_bowl (บาตร, held at the waist); pants_sabong (สบง) is the matching lower robe for a tank-top / angsa look. Use side_ ids in side view.
+Muslim community (ชุมชนมุสลิม, southern Thai / Thai-Malay kampung): hijab = hair_hijab_front (wrap), hair_hijab_shawl_front (pashmina), hair_tudung_sarung_front (tudung with forehead awning), hair_tudung_school_front (white Tadika / ตาดีกา school tudung) — pick no hair_back with them; acc_kopiah (white cap) and acc_songkok (black velvet cap); shirt_jubah (thobe), shirt_baju_melayu (with songket samping), shirt_baju_kurung (long tunic, pair with pants_sarong or pants_skirt); pants_kain_pelekat (checked men's sarong). The village is multicultural: Buddhist, Muslim and Chinese-Thai neighbours live side by side, so mix casts freely and respectfully.
 
 ## User request
 ${ask}`;
